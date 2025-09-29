@@ -1,43 +1,88 @@
-// src/components/ResultCard.tsx
+// src/components/ResultCard.tsx (CORREGIDO)
 import React from 'react';
-import { ResultCardProps } from '../types';
+import { ResultCardProps } from '../types'; // Asume que 'types' incluye la definición de Equipo
 
-export const ResultCard = ({ pc }: ResultCardProps) => (
-  <article className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white p-6 rounded-lg shadow-md border border-gray-200">
-    <div className="mb-4 sm:mb-0">
-      <p className="text-lg font-bold text-gray-800">{pc.modelo}</p>
-      <div className="flex items-center space-x-2 mt-1">
-        <span className={`text-white text-xs font-semibold px-2 py-1 rounded-full ${
-          pc.status === 'En uso' ? 'bg-green-500' :
-          pc.status === 'En reparación' ? 'bg-yellow-500' :
-          'bg-gray-500'
-        }`}>
-          {pc.status || 'Pendiente'}
-        </span>
-      </div>
-      <p className="text-gray-500 text-sm mt-2">S/N: {pc.serie}</p>
-    </div>
-    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 text-gray-600 text-sm">
-      <div className="flex items-center space-x-1">
-        <span>CPU: {pc.specs?.cpu}</span>
-      </div>
-      <div className="flex items-center space-x-1">
-        <span>RAM: {pc.specs?.ram}</span>
-      </div>
-      <div className="flex items-center space-x-1">
-        <span>Windows: {pc.ver_win}</span>
-      </div>
-      <div className="flex items-center space-x-1">
-        <span>Antivirus: {pc.antivirus}</span>
-      </div>
-      {pc.specs?.gpu && (
-        <div className="flex items-center space-x-1">
-          <span>GPU: {pc.specs?.gpu}</span>
+
+export const ResultCard = ({ equipo }: ResultCardProps) => { // 1. Cambiar 'pc' a 'equipo'
+  
+  // Destructuración para mayor claridad
+  const { 
+    tipo_equipo, modelo, status, serie, 
+    // Campos PC
+    cpu, ram, ver_win, antivirus, gpu, 
+    // Campos Impresora
+    toner, drum, conexion, 
+    date 
+  } = equipo;
+
+  // Determinar la clase de color basada en el estado
+  const statusColor = 
+    status === 'En uso' ? 'bg-green-500' :
+    status === 'En reparación' ? 'bg-yellow-500' :
+    'bg-gray-500';
+
+  return (
+    <article className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white p-6 rounded-lg shadow-md border border-gray-200">
+      
+      {/* --- Bloque de Información Base --- */}
+      <div className="mb-4 sm:mb-0">
+        <p className="text-lg font-bold text-gray-800">{modelo}</p>
+        <div className="flex items-center space-x-2 mt-1">
+          <span className={`text-white text-xs font-semibold px-2 py-1 rounded-full ${statusColor}`}>
+            {status || 'Pendiente'}
+          </span>
+          {/* Muestra el tipo de equipo como una etiqueta extra */}
+          <span className="text-gray-700 text-xs font-semibold px-2 py-1 rounded-full bg-blue-100 border border-blue-300">
+            {tipo_equipo}
+          </span>
         </div>
-      )}
-      <div className="flex items-center space-x-1">
-        <span>Fecha de Ingreso: {pc.date}</span>
+        <p className="text-gray-500 text-sm mt-2">S/N: {serie}</p>
       </div>
-    </div>
-  </article>
-);
+
+      {/* --- Bloque de Especificaciones (Condicional) --- */}
+      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 text-gray-600 text-sm">
+        
+        {/* 💻 Renderiza campos de PC solo si es un PC */}
+        {tipo_equipo === 'PC' && (
+          <>
+            {cpu && (
+              <div className="flex items-center space-x-1"><span>CPU: {cpu}</span></div>
+            )}
+            {ram && (
+              <div className="flex items-center space-x-1"><span>RAM: {ram}</span></div>
+            )}
+            {ver_win && (
+              <div className="flex items-center space-x-1"><span>Windows: {ver_win}</span></div>
+            )}
+            {antivirus && (
+              <div className="flex items-center space-x-1"><span>Antivirus: {antivirus}</span></div>
+            )}
+            {gpu && (
+              <div className="flex items-center space-x-1"><span>GPU: {gpu}</span></div>
+            )}
+          </>
+        )}
+
+        {/* 🖨️ Renderiza campos de Impresora solo si es una Impresora */}
+        {tipo_equipo === 'Impresora' && (
+          <>
+            {toner && (
+              <div className="flex items-center space-x-1"><span>Tóner: {toner}</span></div>
+            )}
+            {drum && (
+              <div className="flex items-center space-x-1"><span>Drum: {drum}</span></div>
+            )}
+            {conexion && (
+              <div className="flex items-center space-x-1"><span>Conexión: {conexion}</span></div>
+            )}
+          </>
+        )}
+        
+        {/* Fecha de Ingreso (Común) */}
+        <div className="flex items-center space-x-1">
+          <span>Fecha de Ingreso: {date}</span>
+        </div>
+      </div>
+    </article>
+  );
+};

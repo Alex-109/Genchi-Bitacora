@@ -1,25 +1,29 @@
-// src/components/NewRecordForm.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabaseClient';
-import { NewRecordFormProps, NewRecordFormState, EquipoDB, PcDB, PcCombined } from '../types';
 
-// Interfaz para el estado de las direcciones
-interface DireccionDB {
-    direccion: string;
-    nombre_u: string;
-}
+// Importamos las interfaces proporcionadas por el usuario
+import { NewRecordFormProps, NewRecordFormState, EquipoDB, PcCombined, DireccionDB } from '../types';
+
+// ====================================================================================
+// COMPONENTE PRINCIPAL
+// ====================================================================================
 
 export const NewRecordForm = ({ onBackToList, onRecordCreated }: NewRecordFormProps) => {
+
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+
     const [formData, setFormData] = useState<NewRecordFormState>({
+        tipoEquipo: 'PC',
         model: "",
         brand: "",
         serialNumber: "",
         windows: "",
-        antivirus: "",
+        antivirus: "true", 
         cpu: "",
         ram: "",
+        // Propiedad de almacenamiento añadida
+        almacenamiento: "", 
         gpu: false,
         gpuModel: "",
         powerSupply: "",
@@ -30,291 +34,576 @@ export const NewRecordForm = ({ onBackToList, onRecordCreated }: NewRecordFormPr
         num_inv: "",
         ip: "",
         usuario: "",
+        // Impresora ACTUALIZADA
+        drum: "",
+        toner: "",
+        conexion: "",
     });
+
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-    const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
     const [direcciones, setDirecciones] = useState<DireccionDB[]>([]);
-    const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [newDireccion, setNewDireccion] = useState<string>('');
     const [isNewDireccion, setIsNewDireccion] = useState<boolean>(false);
+    const [newDireccion, setNewDireccion] = useState<string>('');
+
+    const UNIDAD_API = 'http://localhost:5000/api/unidades';
+    const EQUIPOS_PC_API = 'http://localhost:5000/api/equipos/pc';
+    const EQUIPOS_IMPRESORA_API = 'http://localhost:5000/api/equipos/impresora';
 
     useEffect(() => {
         const fetchDirecciones = async () => {
             setIsLoading(true);
-            const { data, error } = await supabase
-                .from('unidad')
-                .select('direccion, nombre_u');
-
-            if (error) {
-                console.error("Error al cargar las direcciones:", error.message);
+            try {
+                const response = await fetch(UNIDAD_API);
+                if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+                const data: DireccionDB[] = await response.json();
+                setDirecciones(Array.isArray(data) ? data : []);
+            } catch (error) {
+                console.error("Error al cargar las direcciones:", error);
                 setMessage({ type: 'error', text: 'No se pudieron cargar las direcciones.' });
-            } else {
-                setDirecciones(data || []);
+            } finally {
+                setIsLoading(false);
             }
-            setIsLoading(false);
         };
         fetchDirecciones();
     }, []);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
-        const checked = (e.target as HTMLInputElement).checked;
-        setFormData(prevData => ({
-            ...prevData,
-            [name]: type === 'checkbox' ? checked : value
-        }));
-    };
+        
+        // Se mantiene la lógica de checkbox para GPU
+        let finalValue: string | boolean = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
 
-    const handleDireccionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const value = e.target.value;
-        if (value === 'nueva_direccion') {
-            setIsNewDireccion(true);
-            setFormData(prevData => ({ ...prevData, direccion: '' }));
+        if (name === 'direccion') {
+            setIsNewDireccion(value === 'nueva');
+        }
+
+        if (name === 'tipoEquipo') {
+            const nextTipoEquipo = value as 'PC' | 'Impresora';
+            let resetFields: Partial<NewRecordFormState> = {};
+            
+            // Lógica para resetear campos específicos
+            if (nextTipoEquipo === 'PC') {
+                // Reset de los nuevos campos de Impresora
+                resetFields = { drum: "", toner: "", conexion: "" }; 
+            } else if (nextTipoEquipo === 'Impresora') {
+                // Se resetean los campos de PC
+                resetFields = { cpu: "", ram: "", almacenamiento: "", gpu: false, gpuModel: "", powerSupply: "", motherboard: "", windows: "", antivirus: "true", usuario: "" };
+            }
+
+            setFormData(prev => ({
+                ...prev,
+                ...resetFields,
+                tipoEquipo: nextTipoEquipo,
+            }));
         } else {
-            setIsNewDireccion(false);
-            setFormData(prevData => ({ ...prevData, direccion: value }));
+            setFormData(prev => ({
+                ...prev,
+                [name]: finalValue,
+            }));
         }
     };
-    
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
         setMessage(null);
 
         let direccionIdToUse = formData.direccion;
+        const nombreEquipo = formData.model;
 
         try {
+            // 1. Manejo de la Nueva Dirección
             if (isNewDireccion && newDireccion) {
-                const { data, error } = await supabase
-                    .from('unidad')
-                    .insert([{ direccion: newDireccion, nombre_u: newDireccion }])
-                    .select();
+                const response = await fetch(UNIDAD_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        direccion: newDireccion,
+                        nombre_u: newDireccion,
+                    })
+                });
 
-                if (error) {
-                    throw new Error(`Error al insertar nueva dirección: ${error.message}`);
+                if (!response.ok) {
+                    const errorDetails = await response.json();
+                    throw new Error(`Error al insertar nueva dirección: ${errorDetails.message || 'Fallo desconocido'}`);
                 }
 
-                if (data && data.length > 0) {
-                    direccionIdToUse = data[0].direccion;
-                } else {
-                    throw new Error('No se pudo obtener el ID de la nueva dirección.');
-                }
+                const newUnit: DireccionDB = await response.json();
+                direccionIdToUse = newUnit.direccion;
             }
 
-            const equipoData: EquipoDB = {
+            // 2. Construir Payload Base
+            let payload: Partial<EquipoDB> = {
                 serie: formData.serialNumber,
                 modelo: formData.model,
                 marca: formData.brand,
+                direccion: direccionIdToUse,
                 num_inv: formData.num_inv,
                 ip: formData.ip,
-                direccion: direccionIdToUse,
+                tipo_equipo: formData.tipoEquipo,
+                status: "Pendiente",
             };
+            
+            let apiUrl = '';
 
-            const { error: equipoError } = await supabase
-                .from('equipo')
-                .insert([equipoData]);
-
-            if (equipoError) {
-                throw new Error(`Error al insertar en 'equipo': ${equipoError.message}`);
-            }
-
-            const pcData: PcDB = {
-                serie: formData.serialNumber,
-                nombre_equipo: formData.model,
-                usuario: formData.usuario,
-                ver_win: formData.windows,
-                antivirus: formData.antivirus,
-                specs: {
+            // 3. Agregar campos específicos según el tipo de equipo
+            if (formData.tipoEquipo === 'PC') {
+                apiUrl = EQUIPOS_PC_API;
+                payload = {
+                    ...payload,
+                    nombre_equipo: nombreEquipo,
+                    usuario: formData.usuario,
+                    ver_win: formData.windows,
+                    antivirus: formData.antivirus === 'true' ? 'Sí' : 'No', 
                     cpu: formData.cpu,
                     ram: formData.ram,
-                    gpu: formData.gpu ? "Con GPU dedicada" : "Sin GPU dedicada",
-                    gpuModel: formData.gpuModel,
+                    almacenamiento: formData.almacenamiento, 
+                    gpu: formData.gpu ? formData.gpuModel : 'N/A',
                     powerSupply: formData.powerSupply,
                     motherboard: formData.motherboard,
-                },
-            };
+                } as Partial<EquipoDB>;
 
-            const { error: pcError } = await supabase
-                .from('pc')
-                .insert([pcData]);
-
-            if (pcError) {
-                throw new Error(`Error al insertar en 'pc': ${pcError.message}`);
+            } else if (formData.tipoEquipo === 'Impresora') {
+                apiUrl = EQUIPOS_IMPRESORA_API;
+                // Campos de Impresora ACTUALIZADOS en el payload
+                payload = {
+                    ...payload,
+                    drum: formData.drum,
+                    toner: formData.toner,
+                    conexion: formData.conexion,
+                } as Partial<EquipoDB>;
             }
 
-            setMessage({ type: 'success', text: '¡Registro creado con éxito!' });
+            // 4. Enviar a la API
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
 
+            if (!response.ok) {
+                const errorDetails = await response.json();
+                throw new Error(`Error al insertar equipo: ${errorDetails.message || 'Fallo desconocido'}`);
+            }
+
+            const savedRecord: EquipoDB = await response.json();
+
+            // 5. Adaptar el registro guardado al formato de la tabla
             const newRecord: PcCombined = {
-                ...equipoData,
-                ...pcData,
-                brand: formData.brand,
-                status: "Pendiente",
+                ...savedRecord,
+                brand: savedRecord.marca,
+                status: savedRecord.status || "Pendiente",
                 date: formData.date,
-            };
+            } as PcCombined;
 
+            setMessage({ type: 'success', text: '¡Registro creado con éxito!' });
             onRecordCreated(newRecord);
 
-            setFormData({
-                model: "", brand: "", serialNumber: "", windows: "", antivirus: "",
-                cpu: "", ram: "", gpu: false, gpuModel: "", powerSupply: "",
-                motherboard: "", date: new Date().toISOString().slice(0, 10), notes: "",
-                direccion: "", num_inv: "", ip: "", usuario: ""
-            });
+            // 6. Resetear el formulario
+            setFormData(prev => ({
+                ...prev,
+                tipoEquipo: 'PC',
+                model: "",
+                brand: "",
+                serialNumber: "",
+                windows: "",
+                antivirus: "true",
+                cpu: "",
+                almacenamiento: "", 
+                ram: "",
+                gpu: false,
+                gpuModel: "",
+                powerSupply: "",
+                motherboard: "",
+                notes: "",
+                direccion: "",
+                num_inv: "",
+                ip: "",
+                usuario: "",
+                // Reset de los nuevos campos de Impresora
+                drum: "",
+                toner: "",
+                conexion: "",
+            }));
             setNewDireccion('');
             setIsNewDireccion(false);
 
-            setTimeout(onBackToList, 2000);
+            setTimeout(onBackToList, 1500);
 
         } catch (error) {
             console.error("Error al guardar en la base de datos:", error);
-            setMessage({ type: 'error', text: 'Ocurrió un error al crear el registro.' });
+            setMessage({ type: 'error', text: `Ocurrió un error al crear el registro: ${error instanceof Error ? error.message : 'Error desconocido'}` });
         } finally {
             setIsSubmitting(false);
         }
     };
 
     return (
-        <section className="bg-white p-6 rounded-xl shadow-lg">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Agregar Nuevo Registro</h2>
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <section className="bg-white p-6 rounded-xl shadow-2xl max-w-4xl mx-auto my-8">
+            <form onSubmit={handleSubmit} className="space-y-6">
 
-                <div className="md:col-span-2">
-                    <h3 className="text-xl font-semibold text-gray-700 mb-4">Información del Equipo</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="flex flex-col">
-                            <label htmlFor="brand" className="text-sm font-medium text-gray-600 mb-1">Marca <span className="text-red-500">*</span></label>
-                            <input type="text" id="brand" name="brand" value={formData.brand} onChange={handleChange} required className="p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-gray-800" placeholder="Ej: Dell, HP, Lenovo" />
-                        </div>
-                        <div className="flex flex-col">
-                            <label htmlFor="model" className="text-sm font-medium text-gray-600 mb-1">Modelo <span className="text-red-500">*</span></label>
-                            <input type="text" id="model" name="model" value={formData.model} onChange={handleChange} required className="p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-gray-800" placeholder="Ej: Inspiron 15, ThinkPad E14" />
-                        </div>
-                        <div className="flex flex-col">
-                            <label htmlFor="serialNumber" className="text-sm font-medium text-gray-600 mb-1">Número de Serie <span className="text-red-500">*</span></label>
-                            <input type="text" id="serialNumber" name="serialNumber" value={formData.serialNumber} onChange={handleChange} required className="p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-gray-800" placeholder="Ej: número de serie del equipo" />
-                        </div>
-                        <div className="flex flex-col">
-                            <label htmlFor="direccion" className="text-sm font-medium text-gray-600 mb-1">Dirección <span className="text-red-500">*</span></label>
-                            <select
-                                id="direccion"
-                                name="direccion"
-                                value={isNewDireccion ? 'nueva_direccion' : formData.direccion}
-                                onChange={handleDireccionChange}
-                                required
-                                className="p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-gray-800"
-                            >
-                                <option value="" disabled>
-                                    {isLoading ? "Cargando..." : "Selecciona una dirección"}
-                                </option>
-                                {direcciones.map((dir) => (
-                                    <option key={dir.direccion} value={dir.direccion}>
-                                        {dir.nombre_u}
-                                    </option>
-                                ))}
-                                <option value="nueva_direccion">
-                                    -- Crear nueva dirección --
-                                </option>
-                            </select>
-                        </div>
-                        {isNewDireccion && (
-                            <div className="flex flex-col">
-                                <label htmlFor="newDireccion" className="text-sm font-medium text-gray-600 mb-1">Nueva Dirección <span className="text-red-500">*</span></label>
+                <h2 className="text-3xl font-bold text-gray-900 border-b-4 border-blue-600 pb-3 mb-6">
+                    Añadir Nuevo Equipo
+                </h2>
+
+                {/* Tipo de equipo */}
+                <div className='bg-blue-50 p-4 rounded-lg'>
+                    <label htmlFor="tipoEquipo" className="block text-lg font-semibold text-blue-800 mb-2">
+                        Tipo de Equipo (*)
+                    </label>
+                    <select
+                        id="tipoEquipo"
+                        name="tipoEquipo"
+                        value={formData.tipoEquipo}
+                        onChange={handleChange}
+                    
+                        className="block w-full rounded-lg border-2 border-blue-300 shadow-sm p-2.5 focus:border-blue-500 focus:ring-blue-500 transition duration-150 text-gray-900"
+                    >
+                        <option value="PC">PC</option>
+                        <option value="Impresora">Impresora</option>
+                    </select>
+                </div>
+
+                {/* Campos comunes */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className='col-span-1'>
+                        <label htmlFor="model" className="block text-sm font-medium text-gray-900">Modelo (*)</label>
+                        <input
+                            type="text"
+                            id="model"
+                            name="model"
+                            value={formData.model}
+                            onChange={handleChange}
+                           
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:border-blue-500 focus:ring-blue-500 text-gray-900"
+                        />
+                    </div>
+                    <div className='col-span-1'>
+                        <label htmlFor="brand" className="block text-sm font-medium text-gray-900">Marca (*)</label>
+                        <input
+                            type="text"
+                            id="brand"
+                            name="brand"
+                            value={formData.brand}
+                            onChange={handleChange}
+                        
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:border-blue-500 focus:ring-blue-500 text-gray-900"
+                        />
+                    </div>
+                    <div className='col-span-1'>
+                        <label htmlFor="serialNumber" className="block text-sm font-medium text-gray-900">Número de Serie (*)</label>
+                        <input
+                            type="text"
+                            id="serialNumber"
+                            name="serialNumber"
+                            value={formData.serialNumber}
+                            onChange={handleChange}
+                        
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:border-blue-500 focus:ring-blue-500 text-gray-900"
+                        />
+                    </div>
+                </div>
+
+                {/* Campos por tipo: PC */}
+                {formData.tipoEquipo === 'PC' && (
+                    <div className='space-y-6 p-4 border rounded-lg bg-gray-50'>
+                        <h3 className="text-xl font-semibold text-gray-900 border-b pb-2">Especificaciones de PC</h3>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <div>
+                                <label htmlFor="cpu" className="block text-sm font-medium text-gray-900">CPU</label>
                                 <input
                                     type="text"
-                                    id="newDireccion"
-                                    name="newDireccion"
-                                    value={newDireccion}
-                                    onChange={(e) => setNewDireccion(e.target.value)}
-                                    required
-                                    className="p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-gray-800"
-                                    placeholder="Nombre de la nueva dirección"
+                                    id="cpu"
+                                    name="cpu"
+                                    value={formData.cpu}
+                                    onChange={handleChange}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 text-gray-900"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="ram" className="block text-sm font-medium text-gray-900">RAM</label>
+                                <input
+                                    type="text"
+                                    id="ram"
+                                    name="ram"
+                                    value={formData.ram}
+                                    onChange={handleChange}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 text-gray-900"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="almacenamiento" className="block text-sm font-medium text-gray-900">Almacenamiento</label>
+                                <input
+                                    type="text"
+                                    id="almacenamiento"
+                                    name="almacenamiento"
+                                    value={formData.almacenamiento}
+                                    onChange={handleChange}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 text-gray-900"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="windows" className="block text-sm font-medium text-gray-900">Versión Windows</label>
+                                <input
+                                    type="text"
+                                    id="windows"
+                                    name="windows"
+                                    value={formData.windows}
+                                    onChange={handleChange}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 text-gray-900"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="antivirus" className="block text-sm font-medium text-gray-900">Antivirus</label>
+                                <select
+                                    id="antivirus"
+                                    name="antivirus"
+                                    value={formData.antivirus}
+                                    onChange={handleChange}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 text-gray-900"
+                                >
+                                    <option value="true">Sí</option>
+                                    <option value="false">No</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                                <label htmlFor="powerSupply" className="block text-sm font-medium text-gray-900">Fuente de Poder</label>
+                                <input
+                                    type="text"
+                                    id="powerSupply"
+                                    name="powerSupply"
+                                    value={formData.powerSupply}
+                                    onChange={handleChange}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 text-gray-900"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="motherboard" className="block text-sm font-medium text-gray-900">Motherboard</label>
+                                <input
+                                    type="text"
+                                    id="motherboard"
+                                    name="motherboard"
+                                    value={formData.motherboard}
+                                    onChange={handleChange}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 text-gray-900"
+                                />
+                            </div>
+                            <div className='flex flex-col justify-start'>
+                                <label htmlFor="gpu" className="block text-sm font-medium text-gray-900 mb-2">Tarjeta Gráfica</label>
+                                <div className="flex items-center space-x-3">
+                                    <input
+                                        type="checkbox"
+                                        id="gpu"
+                                        name="gpu"
+                                        checked={formData.gpu}
+                                        onChange={handleChange}
+                                        className="h-5 w-5 text-blue-600 rounded"
+                                    />
+                                    <label htmlFor="gpu" className="text-gray-900">Sí / Dedicada</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        {formData.gpu && (
+                            <div>
+                                <label htmlFor="gpuModel" className="block text-sm font-medium text-gray-900">Modelo de GPU (*)</label>
+                                <input
+                                    type="text"
+                                    id="gpuModel"
+                                    name="gpuModel"
+                                    value={formData.gpuModel}
+                                    onChange={handleChange}
+                                    required={formData.gpu}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 text-gray-900"
                                 />
                             </div>
                         )}
-                        <div className="flex flex-col">
-                            <label htmlFor="num_inv" className="text-sm font-medium text-gray-600 mb-1">Número de Inventario</label>
-                            <input type="text" id="num_inv" name="num_inv" value={formData.num_inv} onChange={handleChange} className="p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-gray-800" placeholder="Ej: 00123" />
-                        </div>
-                        <div className="flex flex-col">
-                            <label htmlFor="ip" className="text-sm font-medium text-gray-600 mb-1">Dirección IP</label>
-                            <input type="text" id="ip" name="ip" value={formData.ip} onChange={handleChange} className="p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-gray-800" placeholder="Ej: 192.168.1.100" />
-                        </div>
-                        <div className="flex flex-col">
-                            <label htmlFor="usuario" className="text-sm font-medium text-gray-600 mb-1">Usuario</label>
-                            <input type="text" id="usuario" name="usuario" value={formData.usuario} onChange={handleChange} className="p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-gray-800" placeholder="Ej: Juan Pérez" />
+                    </div>
+                )}
+
+                {/* Campos por tipo: Impresora ACTUALIZADOS */}
+                {formData.tipoEquipo === 'Impresora' && (
+                    <div className='space-y-6 p-4 border rounded-lg bg-gray-50'>
+                        <h3 className="text-xl font-semibold text-gray-900 border-b pb-2">Especificaciones de Impresora</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            
+                            {/* Campo DRUM (string) */}
+                            <div>
+                                <label htmlFor="drum" className="block text-sm font-medium text-gray-900">Modelo de Drum</label>
+                                <input
+                                    type="text"
+                                    id="drum"
+                                    name="drum"
+                                    value={formData.drum}
+                                    onChange={handleChange}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 text-gray-900"
+                                />
+                            </div>
+                            
+                            {/* Campo TONER (string) */}
+                            <div>
+                                <label htmlFor="toner" className="block text-sm font-medium text-gray-900">Modelo de Toner</label>
+                                <input
+                                    type="text"
+                                    id="toner"
+                                    name="toner"
+                                    value={formData.toner}
+                                    onChange={handleChange}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 text-gray-900"
+                                />
+                            </div>
+
+                            {/* Campo CONEXION (string) */}
+                            <div>
+                                <label htmlFor="conexion" className="block text-sm font-medium text-gray-900">Tipo de Conexión</label>
+                                <select
+                                    id="conexion"
+                                    name="conexion"
+                                    value={formData.conexion}
+                                    onChange={handleChange}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 text-gray-900"
+                                >
+                                    <option value="">-- Seleccionar --</option>
+                                    <option value="USB">USB</option>
+                                    <option value="Red (Ethernet)">Red (Ethernet)</option>
+                                    <option value="WiFi">WiFi</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
+                
+                {/* Campos de Ubicación y Control */}
+                <div className='space-y-6 p-4 border rounded-lg bg-yellow-50'>
+                    <h3 className="text-xl font-semibold text-gray-900 border-b pb-2">Ubicación y Datos de Control</h3>
 
-                <div className="md:col-span-2">
-                    <h3 className="text-xl font-semibold text-gray-700 mb-4 mt-6">Especificaciones de PC</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="flex flex-col">
-                            <label htmlFor="windows" className="text-sm font-medium text-gray-600 mb-1">Versión de Windows <span className="text-red-500">*</span></label>
-                            <input type="text" id="windows" name="windows" value={formData.windows} onChange={handleChange} required className="p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-gray-800" placeholder="Ej: Windows 10 Pro" />
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div>
+                            <label htmlFor="num_inv" className="block text-sm font-medium text-gray-900">Número de Inventario</label>
+                            <input
+                                type="text"
+                                id="num_inv"
+                                name="num_inv"
+                                value={formData.num_inv}
+                                onChange={handleChange}
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 text-gray-900"
+                            />
                         </div>
-                        <div className="flex flex-col">
-                            <label htmlFor="antivirus" className="text-sm font-medium text-gray-600 mb-1">Antivirus <span className="text-red-500">*</span></label>
-                            <input type="text" id="antivirus" name="antivirus" value={formData.antivirus} onChange={handleChange} required className="p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-gray-800" placeholder="Ej: Defender, Kaspersky" />
+                        <div>
+                            <label htmlFor="ip" className="block text-sm font-medium text-gray-900">IP</label>
+                            <input
+                                type="text"
+                                id="ip"
+                                name="ip"
+                                value={formData.ip}
+                                onChange={handleChange}
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 text-gray-900"
+                            />
                         </div>
-                        <div className="flex flex-col">
-                            <label htmlFor="cpu" className="text-sm font-medium text-gray-600 mb-1">CPU</label>
-                            <input type="text" id="cpu" name="cpu" value={formData.cpu} onChange={handleChange} className="p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-gray-800" placeholder="Ej: Intel Core i5-11400" />
-                        </div>
-                        <div className="flex flex-col">
-                            <label htmlFor="ram" className="text-sm font-medium text-gray-600 mb-1">RAM</label>
-                            <input type="text" id="ram" name="ram" value={formData.ram} onChange={handleChange} className="p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-gray-800" placeholder="Ej: 8GB, 16GB" />
-                        </div>
-                        <div className="flex items-center space-x-2 md:col-span-2">
-                            <input type="checkbox" id="gpu" name="gpu" checked={formData.gpu} onChange={handleChange} className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500" />
-                            <label htmlFor="gpu" className="text-sm font-medium text-gray-600">¿Tiene tarjeta gráfica dedicada?</label>
-                        </div>
-                        {formData.gpu && (
-                            <div className="flex flex-col">
-                                <label htmlFor="gpuModel" className="text-sm font-medium text-gray-600 mb-1">Modelo de la GPU</label>
-                                <input type="text" id="gpuModel" name="gpuModel" value={formData.gpuModel} onChange={handleChange} className="p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-gray-800" placeholder="Ej: NVIDIA GeForce RTX 3060" />
+                        {formData.tipoEquipo === 'PC' && (
+                            <div>
+                                <label htmlFor="usuario" className="block text-sm font-medium text-gray-900">Usuario Asignado</label>
+                                <input
+                                    type="text"
+                                    id="usuario"
+                                    name="usuario"
+                                    value={formData.usuario}
+                                    onChange={handleChange}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 text-gray-900"
+                                />
                             </div>
                         )}
-                        <div className="flex flex-col">
-                            <label htmlFor="powerSupply" className="text-sm font-medium text-gray-600 mb-1">Fuente de Poder</label>
-                            <input type="text" id="powerSupply" name="powerSupply" value={formData.powerSupply} onChange={handleChange} className="p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-gray-800" placeholder="Ej: 650W 80+ Gold" />
-                        </div>
-                        <div className="flex flex-col">
-                            <label htmlFor="motherboard" className="text-sm font-medium text-gray-600 mb-1">Placa Madre</label>
-                            <input type="text" id="motherboard" name="motherboard" value={formData.motherboard} onChange={handleChange} className="p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-gray-800" placeholder="Ej: ASUS ROG Strix B550-F" />
+                        <div>
+                            <label htmlFor="date" className="block text-sm font-medium text-gray-900">Fecha de Ingreso</label>
+                            <input
+                                type="date"
+                                id="date"
+                                name="date"
+                                value={formData.date}
+                                onChange={handleChange}
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 text-gray-900"
+                            />
                         </div>
                     </div>
-                </div>
 
-                <div className="md:col-span-2">
-                    <h3 className="text-xl font-semibold text-gray-700 mb-4 mt-6">Notas y Comentarios</h3>
-                    <div className="flex flex-col">
-                        <label htmlFor="notes" className="text-sm font-medium text-gray-600 mb-1">Notas del Equipo</label>
+                    {/* Dirección */}
+                    <div className="mt-6">
+                        <label htmlFor="direccion" className="block text-sm font-medium text-gray-900 mb-1">
+                            Dirección / Unidad (*)
+                        </label>
+                        <select
+                            id="direccion"
+                            name="direccion"
+                            onChange={handleChange}
+                            value={isNewDireccion ? 'nueva' : formData.direccion}
+                            className="block w-full rounded-lg border-2 border-yellow-300 shadow-sm p-2.5 focus:border-blue-500 focus:ring-blue-500 transition duration-150 text-gray-900"
+                        
+                        >
+                            <option value="">-- Seleccionar --</option>
+                            {isLoading ? (
+                                <option disabled>Cargando direcciones...</option>
+                            ) : (
+                                direcciones.map((dir) => (
+                                    <option key={dir.direccion} value={dir.direccion}>{dir.direccion}</option>
+                                ))
+                            )}
+                            <option value="nueva">Crear Nueva Dirección</option>
+                        </select>
+
+                        {isNewDireccion && (
+                            <input
+                                type="text"
+                                placeholder="Escribe la nueva dirección"
+                                value={newDireccion}
+                                onChange={e => setNewDireccion(e.target.value)}
+                                className="mt-2 block w-full rounded-md border-gray-300 shadow-inner p-2 focus:border-green-500 focus:ring-green-500 text-gray-900"
+                            
+                            />
+                        )}
+                    </div>
+
+                    {/* Notas */}
+                    <div>
+                        <label htmlFor="notes" className="block text-sm font-medium text-gray-900">Notas</label>
                         <textarea
                             id="notes"
                             name="notes"
                             value={formData.notes}
                             onChange={handleChange}
-                            rows={4}
-                            className="p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-gray-800"
-                            placeholder="Añade aquí cualquier detalle relevante sobre el equipo o la reparación."
-                        ></textarea>
+                            rows={3}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:border-blue-500 focus:ring-blue-500 text-gray-900"
+                        />
                     </div>
                 </div>
 
-                <div className="md:col-span-2 flex flex-col items-center mt-6">
+                {/* Mensajes de éxito o error */}
+                {message && (
+                    <div className={`p-3 rounded-lg text-center font-medium ${message.type === 'success' ? 'bg-green-100 text-green-700 border-green-400' : 'bg-red-100 text-red-700 border-red-400'} border-l-4`}>
+                        {message.text}
+                    </div>
+                )}
+
+                {/* Botones */}
+                <div className="flex justify-between pt-4">
+                    <button
+                        type="button"
+                        onClick={onBackToList}
+                        className="inline-flex items-center px-6 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-full text-gray-700 bg-white hover:bg-gray-100 transition duration-150"
+                    >
+                        Volver a la Lista
+                    </button>
                     <button
                         type="submit"
-                        disabled={isSubmitting || (isNewDireccion && !newDireccion)}
-                        className={`w-full max-w-sm px-6 py-3 font-bold rounded-lg transition-colors ${isSubmitting || (isNewDireccion && !newDireccion) ? 'bg-gray-400 text-gray-200 cursor-not-allowed' : 'bg-black text-white hover:bg-gray-800'}`}
+                        disabled={isSubmitting}
+                        className="inline-flex items-center px-6 py-2 border border-transparent shadow-md text-base font-medium rounded-full text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition duration-150 transform hover:scale-[1.02]"
                     >
-                        {isSubmitting ? 'Guardando...' : 'Crear Registro de Equipo'}
+                        {isSubmitting ? 'Guardando...' : 'Guardar Nuevo Equipo'}
                     </button>
-                    {message && (
-                        <div className={`mt-4 text-center p-3 rounded-lg w-full max-w-sm ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                            {message.text}
-                        </div>
-                    )}
                 </div>
             </form>
         </section>
