@@ -7,12 +7,11 @@ export const ResultCard = ({ equipo }: ResultCardProps) => { // 1. Cambiar 'pc' 
   
   // Destructuración para mayor claridad
   const { 
-    tipo_equipo, modelo, status, serie, 
+    tipo_equipo, marca, status, serie, 
     // Campos PC
-    cpu, ram, ver_win, antivirus, gpu, 
+    cpu, ram, windows, antivirus, 
     // Campos Impresora
-    toner, drum, conexion, 
-    date 
+    toner, drum, conexion, date
   } = equipo;
 
   // Determinar la clase de color basada en el estado
@@ -26,7 +25,7 @@ export const ResultCard = ({ equipo }: ResultCardProps) => { // 1. Cambiar 'pc' 
       
       {/* --- Bloque de Información Base --- */}
       <div className="mb-4 sm:mb-0">
-        <p className="text-lg font-bold text-gray-800">{modelo}</p>
+        <p className="text-lg font-bold text-gray-800">{marca}</p>
         <div className="flex items-center space-x-2 mt-1">
           <span className={`text-white text-xs font-semibold px-2 py-1 rounded-full ${statusColor}`}>
             {status || 'Pendiente'}
@@ -51,15 +50,13 @@ export const ResultCard = ({ equipo }: ResultCardProps) => { // 1. Cambiar 'pc' 
             {ram && (
               <div className="flex items-center space-x-1"><span>RAM: {ram}</span></div>
             )}
-            {ver_win && (
-              <div className="flex items-center space-x-1"><span>Windows: {ver_win}</span></div>
+            {windows && (
+              <div className="flex items-center space-x-1"><span>Windows: {windows}</span></div>
             )}
             {antivirus && (
               <div className="flex items-center space-x-1"><span>Antivirus: {antivirus}</span></div>
             )}
-            {gpu && (
-              <div className="flex items-center space-x-1"><span>GPU: {gpu}</span></div>
-            )}
+            
           </>
         )}
 

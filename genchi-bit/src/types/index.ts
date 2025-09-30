@@ -1,3 +1,5 @@
+// src/types.ts
+
 import React from 'react';
 
 // Interfaces ajustadas a la estructura unificada de Express/MongoDB.
@@ -13,25 +15,26 @@ export interface EquipoDB {
     direccion: string;
     marca: string;
     tipo_equipo: 'PC' | 'Monitor' | 'Laptop' | 'Impresora' | string;
-    status: string;
+    status: string; // Se mantiene en la data, pero no se usa para filtrar
+    date: string; // Fecha en formato ISO
+    
 
     // Campos PC
     nombre_equipo?: string;
     usuario?: string;
-    ver_win?: string;
+    windows?: string;
+    ver_win?: string; // Usado para el filtro de Windows
     antivirus?: string
     cpu?: string;
-    ram?: string;
-    almacenamiento?: string;
-    gpu?: string;
-    gpuModel?: string;
-    powerSupply?: string;
+    // Ajustado a number | string para soportar la comparación numérica y 'Otros'
+    ram?: number | string; 
+    almacenamiento?: number | string; // ✨ CORRECCIÓN: Ajustado a number | string
     motherboard?: string;
 
     // Campos Impresora
-    toner?: string; // Lo añadimos para que esté disponible en la DB
-    drum?: string;  // Lo añadimos para que esté disponible en la DB
-    conexion?: string; // Lo añadimos para que esté disponible en la DB
+    toner?: string; 
+    drum?: string; 
+    conexion?: string; 
     printerType?: string; 
     color?: boolean;
     duplex?: boolean;
@@ -54,12 +57,10 @@ export interface NewRecordFormState {
     brand: string;
     serialNumber: string;
     windows: string;
+    ver_win: string;
     antivirus: string;
     cpu: string;
-    ram: string;
-    gpu: boolean;
-    gpuModel: string;
-    powerSupply: string;
+    ram: number;
     motherboard: string;
     date: string;
     notes: string;
@@ -67,6 +68,9 @@ export interface NewRecordFormState {
     num_inv: string;
     ip: string;
     usuario: string;
+    almacenamiento: number;
+    nombre_equipo: string;
+    status: string;
 
     // Impresora
     toner?: string;
@@ -74,15 +78,49 @@ export interface NewRecordFormState {
     conexion?: string;
 }
 
-// 4. Combina datos para frontend (Base de datos + campos calculados/formateados para UI)
-// 📌 CAMBIO CLAVE: Renombrado a EquipoCombined
-export interface EquipoCombined extends EquipoDB {
-    // Estos campos suelen ser redundantes si ya vienen de EquipoDB,
-    // pero se mantienen si necesitas un tipo específico para la tarjeta.
-    brand: string;
-    status: string;
-    date: string; // Asumo que es un campo formateado
+// ----------------------------------------------------------------------
+// INTERFACES DE FILTRADO Y PROPIEDADES DE COMPONENTES
+// ----------------------------------------------------------------------
+
+// 5. Opciones de Filtro (la estructura que define qué filtros se muestran)
+export interface FilterOption {
+    label: string;
+    value: keyof SelectedFilters;
+    options: string[]; // Opciones fijas (e.g., ['i3', 'i5', 'i7'])
 }
+
+// 6. Filtros Seleccionados (CORREGIDO: Se añadió 'almacenamiento')
+export interface SelectedFilters {
+    // Campo Común
+    brand: string; 
+
+    // Campos PC
+    windows: string;
+    cpu: string;
+    ram: string;
+    almacenamiento: string; // ✨ CORRECCIÓN CRÍTICA: Añadido para resolver el error de tipo.
+
+    // Campos Impresora
+    toner: string;
+    drum: string;
+    conexion: string;
+}
+
+// 4. Propiedades de la Sección de Filtro (FilterSectionProps)
+export interface FilterSectionProps {
+    showFilters: boolean;
+    toggleFilters: () => void;
+    filterData: FilterOption[];
+    isLoading: boolean;
+    selectedFilters: SelectedFilters;
+    // Asegura que handleFilterChange use las claves correctas
+    handleFilterChange: (filterName: keyof SelectedFilters, value: string) => void;
+    handleClearFilters: () => void;
+    // NUEVOS PROPIEDADES para el selector de tipo de equipo
+    activeEquipmentType: 'PC' | 'Impresora';
+    handleTypeChange: (type: 'PC' | 'Impresora') => void;
+}
+
 
 // Interfaces de la app (Props de componentes)
 export interface ToolbarProps {
@@ -92,40 +130,11 @@ export interface ToolbarProps {
     toggleFilters: () => void;
 }
 
-export interface FilterSectionProps {
-    showFilters: boolean;
-    toggleFilters: () => void;
-    filterData: FilterOption[];
-    isLoading: boolean;
-    selectedFilters: SelectedFilters;
-    handleFilterChange: (filterName: keyof SelectedFilters, value: string) => void;
-    handleClearFilters: () => void;
-}
-
-// 📌 CAMBIO CLAVE: Usa 'equipo' y el tipo unificado EquipoCombined
 export interface ResultCardProps {
-    equipo: EquipoCombined; 
+    equipo: EquipoDB; 
 }
 
 export interface NewRecordFormProps {
     onBackToList: () => void;
-    // Asumo que el registro creado que se pasa es el tipo combinado para el listado
-    onRecordCreated: (newRecord: EquipoCombined) => void; 
-}
-
-export interface FilterOption {
-    label: string;
-    value: keyof SelectedFilters;
-    options: string[];
-}
-
-export interface SelectedFilters {
-    brand: string;
-    windows: string;
-    cpu: string;
-    ram: string;
-    gpu: string;
-    status: string;
-    // Puedes añadir tipo_equipo si quieres filtrar por PC/Impresora
-    tipo_equipo?: string; 
+    onRecordCreated: (newRecord: EquipoDB) => void; 
 }
