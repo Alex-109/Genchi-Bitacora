@@ -21,13 +21,14 @@ const INITIAL_FILTERS: SelectedFilters = {
     cpu: "",
     ram: "",
     almacenamiento: "",
-    toner: "",
-    drum: "",
+    toner: "", // Se mantiene en INITIAL_FILTERS por tipado, pero no se usa en la UI
+    drum: "",   // Se mantiene en INITIAL_FILTERS por tipado, pero no se usa en la UI
     conexion: "",
 };
 
 const FIXED_OPTIONS_PC: FilterOption[] = [
     { label: 'Marca', value: 'brand', options: ['HP', 'Dell', 'Lenovo', 'Generico', 'Otros'] },
+    // Opciones de CPU simplificadas para coincidencia
     { label: 'CPU', value: 'cpu', options: ['i3', 'i5', 'i7', 'Ryzen 3', 'Ryzen 5', 'Otros'] },
     { label: 'RAM', value: 'ram', options: ['2', '4', '8', '16', 'Otros'] },
     { label: 'Almacenamiento', value: 'almacenamiento', options: ['256', '500', '1000', '2000', 'Otros'] }, 
@@ -36,21 +37,21 @@ const FIXED_OPTIONS_PC: FilterOption[] = [
 
 const FIXED_OPTIONS_IMPRESORA: FilterOption[] = [
     { label: 'Marca', value: 'brand', options: ['HP', 'Epson', 'Brother', 'Canon', 'Otros'] },
-    { label: 'Conexión', value: 'conexion', options: ['USB', 'Red', 'WiFi', 'Otros'] },
-    { label: 'Tóner', value: 'toner', options: ['Laser', 'Inyección', 'Tinta Continua', 'Otros'] },
-    { label: 'Drum', value: 'drum', options: ['Requiere', 'No Aplica', 'Otros'] },
+    // *** CAMBIO A ETHERNET EN EL FILTRO ***
+    { label: 'Conexión', value: 'conexion', options: ['USB', 'Ethernet', 'WiFi', 'Otros'] },
+    // Tóner y Drum eliminados de las opciones de filtro visible
 ];
 
 /**
- * Función auxiliar para obtener la lista de marcas explícitas (excluyendo 'Otros').
+ * Función auxiliar para obtener la lista de opciones explícitas (excluyendo 'Otros' y 'Todos').
  */
-const getExplicitBrandList = (type: EquipmentType) => {
+const getExplicitOptionsList = (type: EquipmentType, filterKey: keyof SelectedFilters) => {
     const options = type === 'PC' ? FIXED_OPTIONS_PC : FIXED_OPTIONS_IMPRESORA;
     return options
-        .find(f => f.value === 'brand')
+        .find(f => f.value === filterKey)
         ?.options
-        .map(opt => opt.toLowerCase())
-        .filter(opt => opt !== 'otros' && opt !== 'todos' && opt !== 'todos') || [];
+        .map(opt => String(opt).toLowerCase())
+        .filter(opt => opt !== 'otros' && opt !== 'todos' && opt !== '') || [];
 };
 
 const App = () => {
@@ -121,6 +122,7 @@ const App = () => {
                         ...item,
                         status: item.status || "Pendiente",
                         date: new Date(item.date).toLocaleDateString('es-CL'),
+                        // Aseguramos que los campos RAM y Almacenamiento existan
                         ram: item.ram || undefined, 
                         almacenamiento: item.almacenamiento || undefined, 
                     } as EquipoDB)); 
@@ -140,35 +142,33 @@ const App = () => {
 
 
     // =======================================================================
-    // 4. Lógica de Filtrado (CORREGIDO: Manejo del filtro 'Otros' para Marca)
+    // 4. Lógica de Filtrado (Adaptada a "Ethernet")
     // =======================================================================
 
     useEffect(() => {
-        // Pre-calculamos la lista de marcas explícitas para el tipo activo
-        const explicitBrands = getExplicitBrandList(activeEquipmentType);
+        // Obtenemos listas de opciones explícitas
+        const explicitBrands = getExplicitOptionsList(activeEquipmentType, 'brand');
+        const explicitCPUs = getExplicitOptionsList('PC', 'cpu');
 
         const newFilteredList = equipoList.filter(equipo => {
             // 1. Filtrar por TIPO DE EQUIPO ACTIVO
             const matchType = equipo.tipo_equipo && equipo.tipo_equipo.toLowerCase() === activeEquipmentType.toLowerCase();
             if (!matchType) return false;
 
-            // 2. Filtrar por MARCA (Lógica mejorada para manejar 'Otros')
+            // 2. Filtrar por MARCA
             const selectedBrand = selectedFilters.brand;
             const equipmentBrand = equipo.marca || '';
             const equipmentBrandLower = equipmentBrand.toLowerCase();
             let matchBrand = false;
 
             if (selectedBrand === "" || selectedBrand === "Todos") {
-                // Si no hay filtro, mostrar todo
                 matchBrand = true;
             } else if (selectedBrand.toLowerCase() === "otros") {
-                // Si se seleccionó 'Otros', el equipo coincide si:
-                // a) El campo de marca NO está vacío, Y
-                // b) La marca NO se encuentra en la lista de marcas explícitas (HP, Dell, etc.)
+                // Coincide si la marca no está vacía Y no es una de las marcas explícitas
                 matchBrand = equipmentBrand !== '' && 
                              !explicitBrands.includes(equipmentBrandLower);
             } else {
-                // Coincidencia exacta (HP, Dell, etc.)
+                // Coincidencia exacta de marca (ej: 'HP')
                 matchBrand = equipmentBrandLower === selectedBrand.toLowerCase();
             }
             
@@ -178,17 +178,31 @@ const App = () => {
             // 3. Filtrar por ATRIBUTOS ESPECÍFICOS DE PC
             if (activeEquipmentType === 'PC') {
                 
-                // Windows (Insensible a Mayúsculas/Minúsculas - Usa ver_win de la DB)
+                // Windows 
                 const selectedWindows = selectedFilters.windows;
                 const equipmentWindows = equipo.ver_win || ''; 
                 const matchWindows = selectedWindows === "" || equipmentWindows.toLowerCase() === selectedWindows.toLowerCase();
                 
-                // CPU (Mantenido con comparación estricta)
+                // CPU
                 const selectedCpu = selectedFilters.cpu;
                 const equipmentCpu = equipo.cpu || '';
-                const matchCpu = selectedCpu === "" || equipmentCpu === selectedCpu; 
+                const equipmentCpuLower = equipmentCpu.toLowerCase();
+                let matchCpu = false;
 
-                // RAM (Lógica de Comparación Numérica)
+                if (selectedCpu === "" || selectedCpu === "Todos") {
+                    matchCpu = true;
+                } else if (selectedCpu.toLowerCase() === "otros") {
+                    const isExplicit = explicitCPUs.some(cpuOpt => equipmentCpuLower.includes(cpuOpt));
+                    const isMissingOrEmpty = equipmentCpu === undefined || equipmentCpu === null || equipmentCpu === '';
+                    matchCpu = isMissingOrEmpty || (!isExplicit && equipmentCpu !== ''); 
+
+                } else {
+                    matchCpu = equipmentCpuLower.includes(selectedCpu.toLowerCase());
+                }
+                
+                if (!matchCpu) return false;
+
+                // RAM
                 const selectedRam = selectedFilters.ram; 
                 const equipmentRam = equipo.ram; 
                 let matchRam = false;
@@ -206,15 +220,33 @@ const App = () => {
                     matchRam = equipmentRamNum === selectedRamNum;
                 }
                 
-                // Almacenamiento (Lógica de Comparación Numérica)
+                if (!matchRam) return false;
+
+                // Almacenamiento 
                 const selectedStorage = selectedFilters.almacenamiento; 
                 const equipmentStorage = equipo.almacenamiento; 
-                let matchStorage = false;
 
+                let matchStorage = false;
+                const explicitStorage = getExplicitOptionsList('PC', 'almacenamiento');
+                
                 if (selectedStorage === "" || selectedStorage === "Todos") {
                     matchStorage = true;
                 } else if (selectedStorage === "Otros") {
-                    matchStorage = (String(equipmentStorage) === "Otros"); 
+                    
+                    const equipmentStorageStr = String(equipmentStorage).toLowerCase();
+                    const equipmentStorageValue = parseInt(equipmentStorageStr, 10);
+                    
+                    const isExplicitlyListed = explicitStorage.includes(equipmentStorageStr) || 
+                                               (equipmentStorageValue && explicitStorage.includes(String(equipmentStorageValue)));
+                    
+                    if (equipmentStorage === undefined || equipmentStorage === null || equipmentStorageStr === "otros" || equipmentStorageStr === '') {
+                        matchStorage = true;
+                    } else if (isExplicitlyListed) {
+                        matchStorage = false;
+                    } else {
+                        matchStorage = true;
+                    }
+
                 } else {
                     const selectedStorageNum = parseInt(selectedStorage, 10);
                     const equipmentStorageNum = typeof equipmentStorage === 'number' 
@@ -223,28 +255,40 @@ const App = () => {
                     
                     matchStorage = equipmentStorageNum === selectedStorageNum;
                 }
-
+                
                 return matchWindows && matchCpu && matchRam && matchStorage;
             } 
             
             // 4. Filtrar por ATRIBUTOS ESPECÍFICOS DE IMPRESORA
             if (activeEquipmentType === 'Impresora') {
-                // Toner
-                const selectedToner = selectedFilters.toner;
-                const equipmentToner = equipo.toner || '';
-                const matchToner = selectedToner === "" || equipmentToner === selectedToner;
+                // Solo mantenemos la conexión. Los campos toner y drum se ignoran.
 
-                // Drum
-                const selectedDrum = selectedFilters.drum;
-                const equipmentDrum = equipo.drum || '';
-                const matchDrum = selectedDrum === "" || equipmentDrum === selectedDrum;
-                
                 // Conexión
                 const selectedConexion = selectedFilters.conexion;
                 const equipmentConexion = equipo.conexion || '';
-                const matchConexion = selectedConexion === "" || equipmentConexion === selectedConexion; 
+                const equipmentConexionLower = equipmentConexion.toLowerCase();
+                const selectedConexionLower = selectedConexion.toLowerCase();
                 
-                return matchToner && matchDrum && matchConexion;
+                let matchConexion = false;
+                
+                if (selectedConexion === "" || selectedConexion === "Todos") {
+                    matchConexion = true;
+                } else if (selectedConexionLower === "ethernet") {
+                    // Coincide si contiene 'red' o 'ethernet' pero NO 'wifi'
+                    const isWiredNetwork = equipmentConexionLower.includes('red') || equipmentConexionLower.includes('ethernet');
+                    matchConexion = isWiredNetwork && !equipmentConexionLower.includes('wifi');
+                } else if (selectedConexionLower === "wifi") {
+                    // Coincidencia estricta para 'wifi'
+                    matchConexion = equipmentConexionLower.includes('wifi');
+                } else if (selectedConexionLower === "usb") {
+                    // Coincidencia estricta para 'usb'
+                    matchConexion = equipmentConexionLower.includes('usb');
+                } else {
+                    // Coincidencia exacta para otras opciones o 'Otros'
+                    matchConexion = equipmentConexionLower === selectedConexionLower;
+                }
+                
+                return matchConexion;
             }
 
             return true; 
@@ -265,7 +309,8 @@ const App = () => {
                     <div className="bg-white p-6 rounded-xl shadow-lg">
                         <header className="mb-8">
                             <h1 className="text-3xl font-bold text-gray-800">Sistema de Inventario de Activos</h1>
-                            <p className="text-gray-500 mt-1">Gestiona el inventario de PCs e Impresoras</p>
+                            {/* Ajuste de color para mejor contraste */}
+                            <p className="text-gray-700 mt-1">Gestiona el inventario de PCs e Impresoras</p>
                         </header>
 
                         <Toolbar 
@@ -290,13 +335,15 @@ const App = () => {
                                 />
                                 <section className="space-y-4 mt-8">
                                     {isLoading ? (
-                                        <div className="text-center text-gray-500 py-10">Cargando equipos...</div>
+                                        /* Ajuste de color para mejor contraste en estado de carga */
+                                        <div className="text-center text-gray-700 py-10">Cargando equipos...</div>
                                     ) : filteredEquipoList.length > 0 ? (
                                         filteredEquipoList.map((equipo, index) => (
                                             <ResultCard key={equipo._id || index} equipo={equipo} /> 
                                         ))
                                     ) : (
-                                        <div className="text-center text-gray-500 py-10">
+                                        /* Ajuste de color para mejor contraste en mensaje de no resultados */
+                                        <div className="text-center text-gray-700 py-10">
                                             <p>No se encontraron resultados que coincidan con los filtros de {activeEquipmentType}.</p>
                                         </div>
                                     )}
