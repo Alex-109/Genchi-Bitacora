@@ -228,33 +228,22 @@ const App = () => {
 
                 let matchStorage = false;
                 const explicitStorage = getExplicitOptionsList('PC', 'almacenamiento');
-                
+
                 if (selectedStorage === "" || selectedStorage === "Todos") {
                     matchStorage = true;
-                } else if (selectedStorage === "Otros") {
-                    
-                    const equipmentStorageStr = String(equipmentStorage).toLowerCase();
-                    const equipmentStorageValue = parseInt(equipmentStorageStr, 10);
-                    
-                    const isExplicitlyListed = explicitStorage.includes(equipmentStorageStr) || 
-                                               (equipmentStorageValue && explicitStorage.includes(String(equipmentStorageValue)));
-                    
-                    if (equipmentStorage === undefined || equipmentStorage === null || equipmentStorageStr === "otros" || equipmentStorageStr === '') {
-                        matchStorage = true;
-                    } else if (isExplicitlyListed) {
-                        matchStorage = false;
-                    } else {
-                        matchStorage = true;
-                    }
-
+                } else if (selectedStorage.toLowerCase() === "otros") {
+                    // Consideramos cualquier valor que no esté en los típicos
+                    const equipmentStorageNum = typeof equipmentStorage === 'number' ? equipmentStorage : parseInt(String(equipmentStorage), 10);
+                    const isExplicitlyListed = explicitStorage.includes(String(equipmentStorageNum));
+                    matchStorage = !isExplicitlyListed;
                 } else {
+                    // Comparamos los valores numéricos aproximando a los típicos
                     const selectedStorageNum = parseInt(selectedStorage, 10);
-                    const equipmentStorageNum = typeof equipmentStorage === 'number' 
-                        ? equipmentStorage 
-                        : parseInt(String(equipmentStorage), 10);
-                    
-                    matchStorage = equipmentStorageNum === selectedStorageNum;
+                    const equipmentStorageNum = typeof equipmentStorage === 'number' ? equipmentStorage : parseInt(String(equipmentStorage), 10);
+                    // Aceptamos ±20 GB de diferencia
+                    matchStorage = Math.abs(equipmentStorageNum - selectedStorageNum) <= 20;
                 }
+
                 
                 return matchWindows && matchCpu && matchRam && matchStorage;
             } 

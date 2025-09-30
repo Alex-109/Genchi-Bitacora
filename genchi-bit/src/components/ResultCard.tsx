@@ -1,85 +1,59 @@
-// src/components/ResultCard.tsx (CORREGIDO)
+// src/components/ResultCard.tsx
 import React from 'react';
-import { ResultCardProps } from '../types'; // Asume que 'types' incluye la definición de Equipo
+import { ResultCardProps } from '../types';
+import { SpecItem } from './results/SpecItem'; // Importamos el nuevo componente
 
+export const ResultCard = ({ equipo }: ResultCardProps) => {
+    const { tipo_equipo, marca, status, serie, date, ...specs } = equipo;
 
-export const ResultCard = ({ equipo }: ResultCardProps) => { // 1. Cambiar 'pc' a 'equipo'
-  
-  // Destructuración para mayor claridad
-  const { 
-    tipo_equipo, marca, status, serie, 
-    // Campos PC
-    cpu, ram, windows, antivirus, 
-    // Campos Impresora
-    toner, drum, conexion, date
-  } = equipo;
+    const statusColor = 
+        status === 'En uso' ? 'bg-green-500' :
+        status === 'En reparación' ? 'bg-yellow-500' :
+        'bg-gray-500';
 
-  // Determinar la clase de color basada en el estado
-  const statusColor = 
-    status === 'En uso' ? 'bg-green-500' :
-    status === 'En reparación' ? 'bg-yellow-500' :
-    'bg-gray-500';
+    // Creamos un array de especificaciones basado en el tipo de equipo
+    let specsToShow: { label: string; value?: string | number }[] = [];
 
-  return (
-    <article className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white p-6 rounded-lg shadow-md border border-gray-200">
-      
-      {/* --- Bloque de Información Base --- */}
-      <div className="mb-4 sm:mb-0">
-        <p className="text-lg font-bold text-gray-800">{marca}</p>
-        <div className="flex items-center space-x-2 mt-1">
-          <span className={`text-white text-xs font-semibold px-2 py-1 rounded-full ${statusColor}`}>
-            {status || 'Pendiente'}
-          </span>
-          {/* Muestra el tipo de equipo como una etiqueta extra */}
-          <span className="text-gray-700 text-xs font-semibold px-2 py-1 rounded-full bg-blue-100 border border-blue-300">
-            {tipo_equipo}
-          </span>
-        </div>
-        <p className="text-gray-500 text-sm mt-2">S/N: {serie}</p>
-      </div>
+    if (tipo_equipo === 'PC') {
+        specsToShow = [
+            { label: 'CPU', value: specs.cpu },
+            { label: 'RAM', value: specs.ram ? `${specs.ram}GB` : undefined },
+            { label: 'Windows', value: specs.windows },
+            { label: 'Antivirus', value: specs.antivirus },
+        ];
+    } else if (tipo_equipo === 'Impresora') {
+        specsToShow = [
+            { label: 'Tóner', value: specs.toner },
+            { label: 'Drum', value: specs.drum },
+            { label: 'Conexión', value: specs.conexion },
+        ];
+    }
+    
+    // Siempre añadimos la fecha
+    specsToShow.push({ label: 'Ingreso', value: date ? new Date(date).toLocaleDateString() : undefined });
 
-      {/* --- Bloque de Especificaciones (Condicional) --- */}
-      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 text-gray-600 text-sm">
-        
-        {/* 💻 Renderiza campos de PC solo si es un PC */}
-        {tipo_equipo === 'PC' && (
-          <>
-            {cpu && (
-              <div className="flex items-center space-x-1"><span>CPU: {cpu}</span></div>
-            )}
-            {ram && (
-              <div className="flex items-center space-x-1"><span>RAM: {ram}</span></div>
-            )}
-            {windows && (
-              <div className="flex items-center space-x-1"><span>Windows: {windows}</span></div>
-            )}
-            {antivirus && (
-              <div className="flex items-center space-x-1"><span>Antivirus: {antivirus}</span></div>
-            )}
-            
-          </>
-        )}
+    return (
+        <article className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white p-6 rounded-lg shadow-md border border-gray-200">
+            {/* Info Base (sin cambios) */}
+            <div className="mb-4 sm:mb-0">
+                <p className="text-lg font-bold text-gray-800">{marca}</p>
+                <div className="flex items-center space-x-2 mt-1">
+                    <span className={`text-white text-xs font-semibold px-2 py-1 rounded-full ${statusColor}`}>
+                        {status || 'Pendiente'}
+                    </span>
+                    <span className="text-gray-700 text-xs font-semibold px-2 py-1 rounded-full bg-blue-100 border border-blue-300">
+                        {tipo_equipo}
+                    </span>
+                </div>
+                <p className="text-gray-500 text-sm mt-2">S/N: {serie}</p>
+            </div>
 
-        {/* 🖨️ Renderiza campos de Impresora solo si es una Impresora */}
-        {tipo_equipo === 'Impresora' && (
-          <>
-            {toner && (
-              <div className="flex items-center space-x-1"><span>Tóner: {toner}</span></div>
-            )}
-            {drum && (
-              <div className="flex items-center space-x-1"><span>Drum: {drum}</span></div>
-            )}
-            {conexion && (
-              <div className="flex items-center space-x-1"><span>Conexión: {conexion}</span></div>
-            )}
-          </>
-        )}
-        
-        {/* Fecha de Ingreso (Común) */}
-        <div className="flex items-center space-x-1">
-          <span>Fecha de Ingreso: {date}</span>
-        </div>
-      </div>
-    </article>
-  );
+            {/* Especificaciones (Ahora es dinámico) */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-end sm:flex-wrap sm:justify-end gap-x-4 gap-y-2">
+                {specsToShow.map(spec => (
+                    <SpecItem key={spec.label} label={spec.label} value={spec.value} />
+                ))}
+            </div>
+        </article>
+    );
 };
