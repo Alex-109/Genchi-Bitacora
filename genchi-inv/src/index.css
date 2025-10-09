@@ -1,0 +1,46 @@
+/* src/index.css */
+@import "tailwindcss";
+
+/* asegurar que el root ocupe toda la altura */
+html, body, #root {
+  height: 100%;
+}
+
+/* variables opcionales */
+:root {
+  --bg-texture-url: url('/images/texture-soft.png');
+}
+
+/* fondo global principal: gradiente + textura ligera */
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #0f172a;
+
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-size: cover, 1200px;
+  background-image: linear-gradient(120deg,#f8fafc 0%,#eef2ff 50%,#f1f5f9 100%), var(--bg-texture-url);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* wrapper general para separar contenido del borde */
+#__app-root {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* overlay para modales (útil si usas la clase modal-overlay en tus overlays) */
+.modal-overlay {
+  background-color: rgba(2,6,23,0.55);
+}
+
+/* variante dark theme si la aplicas en body.dark */
+body.dark {
+  color: white;
+  background-image: linear-gradient(180deg,#0f172a 0%,#071032 60%), none;
+  background-attachment: fixed;
+  background-size: cover;
+}
