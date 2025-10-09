@@ -171,6 +171,15 @@ export default function ModalReparacion({ equipo, onClose, onReparacionExitosa }
                       className="w-full rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-300"
                     />
                   </label>
+                  <label className="block text-sm">
+                        <div className="text-xs text-gray-600 mb-1">Nombre Equipo</div>
+                        <input
+                        name="nombre_equipo"
+                        value={formData.nombre_equipo || ""}
+                        onChange={handleChange}
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                        />
+                    </label>
 
                   <div className="grid grid-cols-2 gap-3">
                     <label className="block text-sm">

@@ -12,9 +12,9 @@ export default function BusquedaEquipos() {
   const [equipos, setEquipos] = useState<Equipo[]>([]);
   const [totalPaginas, setTotalPaginas] = useState(1);
   const [paginaActual, setPaginaActual] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(6);
   const [query, setQuery] = useState("");
-  const [tipoEquipo, setTipoEquipo] = useState<TipoEstado>("pc");
+  const [tipoEquipo, setTipoEquipo] = useState<TipoEstado>("todos");
   const [unidades, setUnidades] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [mensajeError, setMensajeError] = useState<string | null>(null);
@@ -303,7 +303,7 @@ export default function BusquedaEquipos() {
               className="px-3 py-2 border rounded-lg text-sm"
             >
               <option value="">Almacenamiento</option>
-              {["250","500","1TB","Otros"].map((a) => <option key={a} value={a}>{a}</option>)}
+              {["250",,"256","500","512","1000","Otros"].map((a) => <option key={a} value={a}>{a}</option>)}
             </select>
 
             <select
