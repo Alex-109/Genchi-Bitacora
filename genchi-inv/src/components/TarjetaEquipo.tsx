@@ -30,7 +30,9 @@ export default function TarjetaEquipo({ equipo, onEliminar, onActualizarLista }:
             <p><span className="font-semibold">Windows:</span> {equipo.windows} {equipo.ver_win}</p>
             <p><span className="font-semibold">Antivirus:</span> {equipo.antivirus}</p>
             <p><span className="font-semibold">CPU:</span> {equipo.cpu}</p>
-            <p><span className="font-semibold">RAM:</span> {equipo.ram}</p>
+            <p>
+            <span className="font-semibold">RAM:</span> {equipo.ram ? `${equipo.ram} GB` : ""}
+            </p>
             <p><span className="font-semibold">Almacenamiento:</span> {equipo.almacenamiento} ({equipo.tipo_almacenamiento})</p>
           </>
         )}
