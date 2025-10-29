@@ -22,3 +22,9 @@ export const buscarEquipos = async (filtros: any) => {
 export const eliminarEquipoApi = async (id: number) => {
   return axios.delete(`${API_BASE}/eliminar/${id}`);
 };
+
+// Registrar un nuevo ingreso
+export const registrarIngreso = async (id: number) => {
+  return axios.post(`${API_BASE}/${id}/ingreso`);
+};
+

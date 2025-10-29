@@ -7,13 +7,10 @@ export interface FiltrosComunes {
 }
 
 export interface FiltrosPC {
-  windows?: '10' | '11';
-  ver_win?: string;
-  antivirus?: 'si' | 'no';
   ram?: string;
   cpu?: string;
   almacenamiento?: string;
-  tipoAlmacenamiento?: string;
+  tipo_almacenamiento?: string;
 }
 
 export interface FiltrosImpresora {
@@ -24,6 +21,11 @@ export interface FiltrosImpresora {
 
 export interface BusquedaGeneral {
   query?: string; // num_inv, serie, ip, nombre_equipo
+}
+
+export interface HistorialIngreso {
+  fecha: string;   // ISO date
+  estado: "en proceso" | "entregado";
 }
 
 export interface Equipo {
@@ -37,6 +39,8 @@ export interface Equipo {
   ip?: string;
   modelo?: string;
   comentarios?: string;
+  estado?: string;
+  historial_ingresos?: HistorialIngreso[];
 
   // PC / Notebook
   windows?: string;

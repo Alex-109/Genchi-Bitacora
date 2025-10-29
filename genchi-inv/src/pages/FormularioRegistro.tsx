@@ -24,6 +24,7 @@ export default function FormularioEquipo() {
     modelo: "",
     ip: "",
     comentarios: "",
+    estado: "en proceso de reparacion", 
     windows: "Windows 10",
     ver_win: "22H2",
     antivirus: "Sí",
@@ -74,6 +75,7 @@ export default function FormularioEquipo() {
         modelo: "",
         ip: "",
         comentarios: "",
+        estado: "",
         usuario: "",
         cpu: "",
         ram: "",
@@ -168,7 +170,16 @@ export default function FormularioEquipo() {
         </label>
         </div>
 
-      <input name="ram" value={form.ram} onChange={handleChange} placeholder="RAM" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
+      <input name="ram" value={form.ram} 
+      onChange={(e) => {
+          const valor = e.target.value;
+          // Permite solo números vacíos o dígitos
+          if (/^\d*$/.test(valor)) {
+            setForm((prev) => ({ ...prev, ram: valor }));
+          }
+      }}
+      placeholder="RAM (ej: 8)" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
+
       <input name="cpu" value={form.cpu} onChange={handleChange} placeholder="CPU" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
       
       <input
