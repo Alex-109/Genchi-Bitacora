@@ -13,10 +13,10 @@ export default function Navbar() {
   return (
     <nav className="bg-gray-800 text-white p-4 flex justify-center gap-4">
       <Link to="/" className={linkClasses("/")}>
-        Formulario
-      </Link>
-      <Link to="/busqueda" className={linkClasses("/busqueda")}>
         Búsqueda
+      </Link>
+      <Link to="/registro" className={linkClasses("/registro")}>
+        Registrar Equipo
       </Link>
     </nav>
   );

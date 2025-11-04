@@ -1,6 +1,9 @@
+// src/components/ModalReparacion.tsx
 import { useEffect, useState } from "react";
 import type { Equipo } from "../types/equipo";
 import { iniciarReparacion } from "../services/reparacionesApi";
+// ✅ IMPORTACIÓN AÑADIDA: Para cambiar el estado después de la reparación
+import { actualizarEstadoEquipo } from "../services/equiposApi";
 
 interface Props {
   equipo: Equipo;
@@ -107,34 +110,54 @@ export default function ModalReparacion({
     }
     return cambios;
   };
+// src/components/ModalReparacion.tsx (Fragmento del handleSubmit)
 
-  const handleSubmit = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const cambios = calcularCambiosReales();
-      if (Object.keys(cambios).length === 0) {
-        setError("No hay cambios para registrar.");
-        setLoading(false);
-        return;
-      }
+  const handleSubmit = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const cambios = calcularCambiosReales();
+      const obsLimpia = obs.trim();
 
-      await iniciarReparacion({
-        id_equipo: equipo.id!,
-        cambios,
-        obs,
-        rut: "12345678-9",
-      });
+      if (Object.keys(cambios).length === 0 && obsLimpia === "") {
+        setError("No hay cambios de atributos ni observaciones para registrar.");
+        setLoading(false);
+        return;
+      }
 
-      onReparacionExitosa();
-      onClose();
-    } catch (err: any) {
-      setError(err?.response?.data?.message || "Error al generar reparación");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+      // ✅ CORRECCIÓN CLAVE: Validación y tipado.
+      // Aseguramos que idEquipo sea un número. Si es null/undefined, detenemos el proceso.
+      const idEquipo = equipo.id;
+      if (typeof idEquipo !== 'number' || idEquipo <= 0) {
+        setError("Error fatal: ID de equipo no válido o faltante.");
+        setLoading(false);
+        return;
+      }
+      
+      const estadoFinal = "entregado";
+
+      // 1. LLAMADA ORIGINAL: Iniciar/Registrar la reparación
+      await iniciarReparacion({
+        id_equipo: idEquipo, // Usamos el ID validado (es un number)
+        cambios,
+        obs: obsLimpia,
+        rut: "12345678-9",
+      });
+      
+      // 2. NUEVA FUNCIONALIDAD: Cambiar el estado del equipo
+      await actualizarEstadoEquipo(idEquipo, estadoFinal);
+
+      onReparacionExitosa();
+      onClose();
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message || "Error al generar/finalizar reparación"
+      );
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // ===== ORDEN DE CAMPOS =====
   const camposComunes: CampoProps[] = [

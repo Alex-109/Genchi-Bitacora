@@ -43,18 +43,18 @@ export default function FormularioEquipo() {
   const [mensaje, setMensaje] = useState("");
   const [modalExito, setModalExito] = useState(false);
 
-  useEffect(() => {
-    const fetchUnidades = async () => {
-      try {
-        const res = await obtenerUnidades();
-        setUnidades(res);
-      } catch (error) {
-        console.error("Error obteniendo unidades:", error);
-        setUnidades([]);
-      }
-    };
-    fetchUnidades();
-  }, []);
+useEffect(() => {
+  const fetchUnidades = async () => {
+    try {
+      const nombresUnidades = await obtenerUnidades(); // Ya es array de strings
+      setUnidades(nombresUnidades); 
+    } catch (error) {
+      console.error("Error obteniendo unidades:", error);
+      setUnidades([]);
+    }
+  };
+  fetchUnidades();
+}, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -64,7 +64,12 @@ export default function FormularioEquipo() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await crearEquipo(form);
+      // Asegurar que el historial de ingresos se envía al backend al crear el equipo
+      const equipoConIngreso = {
+        ...form,
+        historial_ingresos: [{ fecha: new Date().toISOString(), estado: "en proceso de reparacion" as "en proceso de reparacion" }],
+      };
+      await crearEquipo(equipoConIngreso);
       setModalExito(true); // Mostrar modal
       setForm((prev) => ({
         ...prev,
@@ -75,8 +80,7 @@ export default function FormularioEquipo() {
         modelo: "",
         ip: "",
         comentarios: "",
-        estado: "",
-        usuario: "",
+        nombre_usuario: "",
         cpu: "",
         ram: "",
         almacenamiento: "",
@@ -85,6 +89,7 @@ export default function FormularioEquipo() {
         drum: "",
         conexion: "",
         nombre_equipo: "",
+        historial_ingresos: [{ fecha: new Date().toISOString(), estado: "en proceso de reparacion" }],
       }));
     } catch (error: any) {
       setMensaje(error.response?.data?.mensaje || "❌ Error al crear el equipo.");
@@ -124,11 +129,24 @@ export default function FormularioEquipo() {
   <input name="num_inv" value={form.num_inv} onChange={handleChange} placeholder="Número de Inventario" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
   <input name="serie" value={form.serie} onChange={handleChange} placeholder="Serie" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
 
-  <select name="nombre_unidad" value={form.nombre_unidad} onChange={handleChange} className="input border-2 border-gray-400 rounded-lg px-3 py-2">
-    <option value="">Selecciona Unidad</option>
-    {unidades.map((u) => <option key={u} value={u}>{u}</option>)}
-    <option value="Otros">Otros</option>
-  </select>
+  <select 
+    name="nombre_unidad" 
+    value={form.nombre_unidad} 
+    onChange={handleChange} 
+    className="w-full border-2 border-gray-400 rounded-lg px-3 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+  >
+    {/* ✅ Añadir key a la opción estática 1 */}
+    <option key="default-unidad" value="" className="text-gray-700">Selecciona Unidad</option>
+    
+    {/* El mapeo ya usa 'u' como key, lo cual es correcto si los nombres de las unidades son únicos */}
+    {unidades.map((u) => (
+       <option key={u} value={u} className="text-gray-700">{u}</option>
+    ))}
+    
+    {/* ✅ Añadir key a la opción estática 2 */}
+    <option key="otros-unidad" value="Otros" className="text-gray-700">Otros</option> 
+  </select>
+
 
   {/* Marca dinámica */}
   <select name="marca" value={form.marca} onChange={handleChange} className="input border-2 border-gray-400 rounded-lg px-3 py-2" required>

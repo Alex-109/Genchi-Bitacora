@@ -8,7 +8,8 @@ function App() {
     <Router>
       <Navbar />
       <Routes>
-        <Route path="/" element={<FormularioEquipo />} />
+        <Route path="/" element={<BusquedaEquipos />} />
+        <Route path="/registro" element={<FormularioEquipo />} />
         <Route path="/busqueda" element={<BusquedaEquipos />} />
       </Routes>
     </Router>
