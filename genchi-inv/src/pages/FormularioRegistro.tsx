@@ -1,3 +1,4 @@
+// components/FormularioEquipo.tsx
 import { useState, useEffect } from "react";
 import type { Equipo, TipoEquipo } from "../types/equipo";
 import { crearEquipo } from "../services/equiposApi";
@@ -30,8 +31,8 @@ export default function FormularioEquipo() {
     antivirus: "Sí",
     nombre_usuario: "",
     cpu: "",
-    ram: "",
-    almacenamiento: "",
+    ram: 0, // ✅ number
+    almacenamiento: 0, // ✅ number
     tipo_almacenamiento: "",
     toner: "",
     drum: "",
@@ -43,36 +44,64 @@ export default function FormularioEquipo() {
   const [mensaje, setMensaje] = useState("");
   const [modalExito, setModalExito] = useState(false);
 
-useEffect(() => {
-  const fetchUnidades = async () => {
-    try {
-      const nombresUnidades = await obtenerUnidades(); // Ya es array de strings
-      setUnidades(nombresUnidades); 
-    } catch (error) {
-      console.error("Error obteniendo unidades:", error);
-      setUnidades([]);
-    }
-  };
-  fetchUnidades();
-}, []);
+  useEffect(() => {
+    const fetchUnidades = async () => {
+      try {
+        const nombresUnidades = await obtenerUnidades();
+        setUnidades(nombresUnidades); 
+      } catch (error) {
+        console.error("Error obteniendo unidades:", error);
+        setUnidades([]);
+      }
+    };
+    fetchUnidades();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  // ✅ NUEVA FUNCIÓN: Manejar cambios en campos numéricos
+  const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    
+    // Si el campo está vacío, establecer como 0
+    if (value === "") {
+      setForm((prev) => ({ ...prev, [name]: 0 }));
+      return;
+    }
+    
+    // Solo permitir números
+    if (/^\d*$/.test(value)) {
+      const numericValue = parseInt(value, 10);
+      // Si es un número válido, guardar como número
+      if (!isNaN(numericValue)) {
+        setForm((prev) => ({ ...prev, [name]: numericValue }));
+      }
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Asegurar que el historial de ingresos se envía al backend al crear el equipo
-      const equipoConIngreso = {
+      // ✅ Asegurar que los campos numéricos sean números válidos
+      const equipoParaEnviar = {
         ...form,
-        historial_ingresos: [{ fecha: new Date().toISOString(), estado: "en proceso de reparacion" as "en proceso de reparacion" }],
+        ram: form.ram || 0, // Asegurar que no sea undefined
+        almacenamiento: form.almacenamiento || 0, // Asegurar que no sea undefined
+        historial_ingresos: [{ 
+          fecha: new Date().toISOString(), 
+          estado: "en proceso de reparacion" as "en proceso de reparacion" 
+        }],
       };
-      await crearEquipo(equipoConIngreso);
-      setModalExito(true); // Mostrar modal
-      setForm((prev) => ({
-        ...prev,
+
+      await crearEquipo(equipoParaEnviar);
+      setModalExito(true);
+      
+      // ✅ Resetear formulario manteniendo tipos correctos
+      setForm({
+        tipo_equipo: "pc",
         num_inv: "",
         serie: "",
         nombre_unidad: "",
@@ -80,17 +109,21 @@ useEffect(() => {
         modelo: "",
         ip: "",
         comentarios: "",
+        estado: "en proceso de reparacion",
+        windows: "Windows 10",
+        ver_win: "22H2",
+        antivirus: "Sí",
         nombre_usuario: "",
         cpu: "",
-        ram: "",
-        almacenamiento: "",
+        ram: 0, // ✅ Resetear como número
+        almacenamiento: 0, // ✅ Resetear como número
         tipo_almacenamiento: "",
         toner: "",
         drum: "",
         conexion: "",
         nombre_equipo: "",
-        historial_ingresos: [{ fecha: new Date().toISOString(), estado: "en proceso de reparacion" }],
-      }));
+      });
+      
     } catch (error: any) {
       setMensaje(error.response?.data?.mensaje || "❌ Error al crear el equipo.");
     }
@@ -105,198 +138,164 @@ useEffect(() => {
         {mensaje && <p className="mb-4 text-sm text-red-600">{mensaje}</p>}
 
         <form onSubmit={handleSubmit} className="grid gap-6 md:grid-cols-2">
-  <div className="md:col-span-2">
-    <label className="block text-sm font-semibold text-gray-700 mb-2">Tipo de Equipo</label>
-    <div className="relative">
-      <select
-        name="tipo_equipo"
-        value={form.tipo_equipo}
-        onChange={handleChange}
-        className="w-full border-2 border-indigo-500 bg-indigo-50 text-indigo-800 font-semibold rounded-xl px-4 py-3 shadow focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
-      >
-        {tiposEquipos.map((tipo) => (
-          <option key={tipo} value={tipo}>{tipo.toUpperCase()}</option>
-        ))}
-      </select>
-      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-indigo-500">
-        <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-        </svg>
-      </div>
-    </div>
-  </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Tipo de Equipo</label>
+            <div className="relative">
+              <select
+                name="tipo_equipo"
+                value={form.tipo_equipo}
+                onChange={handleChange}
+                className="w-full border-2 border-indigo-500 bg-indigo-50 text-indigo-800 font-semibold rounded-xl px-4 py-3 shadow focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
+              >
+                {tiposEquipos.map((tipo) => (
+                  <option key={tipo} value={tipo}>{tipo.toUpperCase()}</option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-indigo-500">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
 
-  <input name="num_inv" value={form.num_inv} onChange={handleChange} placeholder="Número de Inventario" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
-  <input name="serie" value={form.serie} onChange={handleChange} placeholder="Serie" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
+          <input name="num_inv" value={form.num_inv} onChange={handleChange} placeholder="Número de Inventario" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
+          <input name="serie" value={form.serie} onChange={handleChange} placeholder="Serie" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
 
-  <select 
-    name="nombre_unidad" 
-    value={form.nombre_unidad} 
-    onChange={handleChange} 
-    className="w-full border-2 border-gray-400 rounded-lg px-3 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-  >
-    {/* ✅ Añadir key a la opción estática 1 */}
-    <option key="default-unidad" value="" className="text-gray-700">Selecciona Unidad</option>
-    
-    {/* El mapeo ya usa 'u' como key, lo cual es correcto si los nombres de las unidades son únicos */}
-    {unidades.map((u) => (
-       <option key={u} value={u} className="text-gray-700">{u}</option>
-    ))}
-    
-    {/* ✅ Añadir key a la opción estática 2 */}
-    <option key="otros-unidad" value="Otros" className="text-gray-700">Otros</option> 
-  </select>
+          <select 
+            name="nombre_unidad" 
+            value={form.nombre_unidad} 
+            onChange={handleChange} 
+            className="w-full border-2 border-gray-400 rounded-lg px-3 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option key="default-unidad" value="">Selecciona Unidad</option>
+            {unidades.map((u) => (
+              <option key={u} value={u}>{u}</option>
+            ))}
+            <option key="otros-unidad" value="Otros">Otros</option> 
+          </select>
 
+          <select name="marca" value={form.marca} onChange={handleChange} className="input border-2 border-gray-400 rounded-lg px-3 py-2" required>
+            <option value="">Selecciona Marca</option>
+            {marcasActuales.map((marca) => (
+              <option key={marca} value={marca}>{marca}</option>
+            ))}
+          </select>
 
-  {/* Marca dinámica */}
-  <select name="marca" value={form.marca} onChange={handleChange} className="input border-2 border-gray-400 rounded-lg px-3 py-2" required>
-    <option value="">Selecciona Marca</option>
-    {marcasActuales.map((marca) => (
-      <option key={marca} value={marca}>{marca}</option>
-    ))}
-  </select>
+          {!(form.tipo_equipo === "pc" && (form.marca?.toLowerCase() || "") === "generico") && (
+            <input name="modelo" value={form.modelo} onChange={handleChange} placeholder="Modelo" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
+          )}
 
-  {/* Modelo, oculto si PC + Marca Generico */}
-  {!(form.tipo_equipo === "pc" && (form.marca?.toLowerCase() || "") === "generico") && (
-    <input name="modelo" value={form.modelo} onChange={handleChange} placeholder="Modelo" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
-  )}
+          {(form.tipo_equipo === "pc" || form.tipo_equipo === "notebook") && (
+            <>
+              <input name="nombre_equipo" value={form.nombre_equipo} onChange={handleChange} placeholder="Nombre de Equipo" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
+              <input name="nombre_usuario" value={form.nombre_usuario} onChange={handleChange} placeholder="Nombre de Usuario" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
+              <input name="windows" value={form.windows} onChange={handleChange} placeholder="Windows" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
+              <input name="ver_win" value={form.ver_win} onChange={handleChange} placeholder="Versión Windows" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
+              
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  name="antivirus"
+                  checked={form.antivirus === "Sí"}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      antivirus: e.target.checked ? "Sí" : "No",
+                    }))
+                  }
+                  className="h-5 w-5 text-indigo-600 border-gray-300 rounded"
+                />
+                <label className="text-gray-700 font-medium select-none">
+                  Antivirus instalado
+                </label>
+              </div>
 
-  {/* Inputs para PC / Notebook */}
-  {(form.tipo_equipo === "pc" || form.tipo_equipo === "notebook") && (
-    <>
-      <input name="nombre_equipo" value={form.nombre_equipo} onChange={handleChange} placeholder="Nombre de Equipo" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
-      <input name="nombre_usuario" value={form.nombre_usuario} onChange={handleChange} placeholder="Nombre de Usuario" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
-      <input name="windows" value={form.windows} onChange={handleChange} placeholder="Windows" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
-      <input name="ver_win" value={form.ver_win} onChange={handleChange} placeholder="Versión Windows" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
-      
-      {/* Antivirus */}
-      <div className="flex items-center gap-2">
-        <input
-            type="checkbox"
-            name="antivirus"
-            checked={form.antivirus === "Sí"}
-            onChange={(e) =>
-            setForm((prev) => ({
-                ...prev,
-                antivirus: e.target.checked ? "Sí" : "No",
-            }))
-            }
-            className="h-5 w-5 text-indigo-600 border-gray-300 rounded"
-        />
-        <label className="text-gray-700 font-medium select-none">
-            Antivirus instalado
-        </label>
-        </div>
+              {/* ✅ CAMBIADO: Usar handleNumberChange para campos numéricos */}
+              <input 
+                name="ram" 
+                value={form.ram === 0 ? "" : form.ram} // Mostrar vacío si es 0
+                onChange={handleNumberChange}
+                placeholder="RAM (ej: 8)" 
+                className="input border-2 border-gray-400 rounded-lg px-3 py-2" 
+                type="number"
+                min="0"
+              />
 
-      <input name="ram" value={form.ram} 
-      onChange={(e) => {
-          const valor = e.target.value;
-          // Permite solo números vacíos o dígitos
-          if (/^\d*$/.test(valor)) {
-            setForm((prev) => ({ ...prev, ram: valor }));
-          }
-      }}
-      placeholder="RAM (ej: 8)" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
+              <input name="cpu" value={form.cpu} onChange={handleChange} placeholder="CPU" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
+              
+              {/* ✅ CAMBIADO: Usar handleNumberChange para campos numéricos */}
+              <input
+                name="almacenamiento"
+                value={form.almacenamiento === 0 ? "" : form.almacenamiento} // Mostrar vacío si es 0
+                onChange={handleNumberChange}
+                placeholder="Almacenamiento (ej: 256)"
+                className="input border-2 border-gray-400 rounded-lg px-3 py-2"
+                type="number"
+                min="0"
+              />
 
-      <input name="cpu" value={form.cpu} onChange={handleChange} placeholder="CPU" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
-      
-      <input
-        name="almacenamiento"
-        value={form.almacenamiento}
-        onChange={(e) => {
-            const valor = e.target.value;
-            // Permite solo números vacíos o dígitos
-            if (/^\d*$/.test(valor)) {
-            setForm((prev) => ({ ...prev, almacenamiento: valor }));
-            }
-        }}
-        placeholder="Almacenamiento (ej: 256)"
-        className="input border-2 border-gray-400 rounded-lg px-3 py-2"
-       />
+              <select name="tipo_almacenamiento" value={form.tipo_almacenamiento} onChange={handleChange} className="input border-2 border-gray-400 rounded-lg px-3 py-2">
+                <option value="">Selecciona Tipo de Almacenamiento</option>
+                {tiposAlmacenamiento.map((tipo) => (
+                  <option key={tipo} value={tipo}>{tipo}</option>
+                ))}
+              </select>
+            </>
+          )}
 
-      {/* Tipo de almacenamiento */}
-      <select name="tipo_almacenamiento" value={form.tipo_almacenamiento} onChange={handleChange} className="input border-2 border-gray-400 rounded-lg px-3 py-2">
-        <option value="">Selecciona Tipo de Almacenamiento</option>
-        {tiposAlmacenamiento.map((tipo) => (
-          <option key={tipo} value={tipo}>{tipo}</option>
-        ))}
-      </select>
-    </>
-  )}
+          {form.tipo_equipo === "impresora" && (
+            <div className="md:col-span-2 grid grid-cols-2 gap-4">
+              <select
+                name="conexion"
+                value={form.conexion}
+                onChange={handleChange}
+                className="input border-2 border-gray-400 rounded-lg px-3 py-2"
+              >
+                <option value="">Tipo de Conexión</option>
+                <option value="WiFi">WiFi</option>
+                <option value="Ethernet">Ethernet</option>
+                <option value="USB">USB</option>
+              </select>
 
-  {/* Inputs para Impresoras */}
-  {form.tipo_equipo === "impresora" && (
-    <div className="md:col-span-2 grid grid-cols-2 gap-4">
-      
-      {/* Tipo de conexión */}
-      <select
-        name="conexion"
-        value={form.conexion}
-        onChange={handleChange}
-        className="input border-2 border-gray-400 rounded-lg px-3 py-2"
-      >
-        <option value="">Tipo de Conexión</option>
-        <option value="WiFi">WiFi</option>
-        <option value="Ethernet">Ethernet</option>
-        <option value="USB">USB</option>
-      </select>
+              {((form.conexion?.toLowerCase() || "") !== "usb") && (
+                <input
+                  name="ip"
+                  value={form.ip}
+                  onChange={handleChange}
+                  placeholder="IP"
+                  className="input border-2 border-gray-400 rounded-lg px-3 py-2"
+                />
+              )}
+                
+              <input name="toner" value={form.toner} onChange={handleChange} placeholder="Toner" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
+              <input name="drum" value={form.drum} onChange={handleChange} placeholder="Drum" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
+            </div>
+          )}
 
-      {/* IP solo si no es USB */}
-      {((form.conexion?.toLowerCase() || "") !== "usb") && (
-        <input
-          name="ip"
-          value={form.ip}
-          onChange={handleChange}
-          placeholder="IP"
-          className="input border-2 border-gray-400 rounded-lg px-3 py-2"
-        />
-      )}
-        
-      <input name="toner" value={form.toner} onChange={handleChange} placeholder="Toner" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
-      <input name="drum" value={form.drum} onChange={handleChange} placeholder="Drum" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
-    </div>
-  )}
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Comentarios</label>
+            <textarea
+              name="comentarios"
+              value={form.comentarios}
+              onChange={handleChange}
+              rows={4}
+              placeholder="Comentarios adicionales..."
+              className="w-full border-2 border-gray-400 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
 
-  <div className="md:col-span-2">
-    <label className="block text-sm font-medium text-gray-700 mb-1">Comentarios</label>
-    <textarea
-      name="comentarios"
-      value={form.comentarios}
-      onChange={handleChange}
-      rows={4}
-      placeholder="Comentarios adicionales..."
-      className="w-full border-2 border-gray-400 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-    />
-  </div>
-
-  <div className="md:col-span-2 flex justify-end">
-    <button
-      type="submit"
-      className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2 rounded-lg shadow transition"
-    >
-      Registrar Equipo
-    </button>
-  </div>
-
-  {/* Modal de éxito */}
-  {mensaje.includes("✅") && (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-30 z-50">
-      <div className="bg-white rounded-xl p-6 shadow-lg max-w-sm w-full text-center">
-        <p className="text-green-600 font-semibold mb-4">{mensaje}</p>
-        <button
-          onClick={() => setMensaje("")}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg"
-        >
-          Cerrar
-        </button>
-      </div>
-    </div>
-  )}
-</form>
-
+          <div className="md:col-span-2 flex justify-end">
+            <button
+              type="submit"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2 rounded-lg shadow transition"
+            >
+              Registrar Equipo
+            </button>
+          </div>
+        </form>
       </div>
 
-      {/* Modal de éxito */}
       {modalExito && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-lg p-6 w-80 text-center">

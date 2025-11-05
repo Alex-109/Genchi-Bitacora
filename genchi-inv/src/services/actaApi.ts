@@ -2,26 +2,42 @@
 import axios from 'axios';
 
 export const generarActaEntrega = async (idEquipo: number): Promise<void> => {
-  try {
-    const response = await axios.get(
-      `http://localhost:5000/api/actas/acta-entrega/${idEquipo}`, // Ajusta el puerto
-      {
-        responseType: 'blob'
-      }
-    );
+  try {
+    const response = await axios.get(
+      `http://localhost:5000/api/actas/acta-entrega/${idEquipo}`, // Ajusta el puerto
+      {
+        responseType: 'blob'
+      }
+    );
 
-    // Crear y descargar el archivo
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `acta-entrega-${idEquipo}.docx`);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
+    // *** CAMBIO CLAVE AQUI ***
+    // 1. Intentar obtener el nombre del archivo de la cabecera Content-Disposition
+    let nombreArchivo = `acta-entrega-${idEquipo}.docx`; // Fallback
+    const contentDisposition = response.headers['content-disposition'];
+
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename="(.+?)"/i);
+      if (filenameMatch && filenameMatch[1]) {
+        nombreArchivo = filenameMatch[1];
+      }
+    }
+    // *** FIN DEL CAMBIO ***
+
+    // Crear y descargar el archivo
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    
+    // Usar el nombre de archivo obtenido
+    link.setAttribute('download', nombreArchivo);
     
-  } catch (error) {
-    console.error('Error generando acta de entrega:', error);
-    throw new Error('No se pudo generar el acta de entrega');
-  }
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+    
+  } catch (error) {
+    console.error('Error generando acta de entrega:', error);
+    throw new Error('No se pudo generar el acta de entrega');
+  }
 };

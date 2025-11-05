@@ -155,7 +155,7 @@ export default function ModalHistorial({ idEquipo, onClose }: Props) {
                         <div className="text-gray-800">{formatDate(r.fecha_reparacion)}</div>
                     </div>
                     <div className="col-span-2 mt-2 text-sm">
-                        <span className="font-medium text-indigo-600">Días en Servicio:</span>
+                        <span className="font-medium text-indigo-600">Días en reparacion:</span>
                         <span className="ml-2 font-bold text-gray-700">{calcularDias(r.fecha_ingreso, r.fecha_reparacion)}</span>
                     </div>
                   </div>
