@@ -208,7 +208,7 @@ export default function ModalReparacion({
     onChange: handleChange,
   };
 
-  const todosLosCampos = [...camposComunes, ...camposEspecificos, campoComentarios];
+  
   
   
 
