@@ -4,7 +4,7 @@ import axios from 'axios';
 export const generarActaEntrega = async (idEquipo: number): Promise<void> => {
   try {
     const response = await axios.get(
-      `http://localhost:5000/api/actas/acta-entrega/${idEquipo}`, // Ajusta el puerto
+      `${process.env.REACT_APP_API_URL}/actas/acta-entrega/${idEquipo}`, // Ajusta el puerto
       {
         responseType: 'blob'
       }
