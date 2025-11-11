@@ -3,7 +3,7 @@
 import axios from "axios";
 import type { Equipo } from "../types/equipo";
 
-const API_BASE = `${process.env.REACT_APP_API_URL}/equipos`;
+const API_BASE = `${import.meta.env.VITE_API_URL}/equipos`;
 
 // Crear equipo
 export const crearEquipo = async (equipo: Omit<Equipo, "id" | "createdAt" | "updatedAt">) => {
