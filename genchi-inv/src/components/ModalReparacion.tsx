@@ -211,8 +211,7 @@ export default function ModalReparacion({
   const todosLosCampos = [...camposComunes, ...camposEspecificos, campoComentarios];
   const totalCampos = todosLosCampos.length;
   const mitad = Math.ceil(totalCampos / 2);
-  const columna1 = todosLosCampos.slice(0, mitad);
-  const columna2 = todosLosCampos.slice(mitad);
+  
 
   // ===== RENDER =====
   return (
