@@ -209,8 +209,7 @@ export default function ModalReparacion({
   };
 
   const todosLosCampos = [...camposComunes, ...camposEspecificos, campoComentarios];
-  const totalCampos = todosLosCampos.length;
- 
+  
   
 
   // ===== RENDER =====
