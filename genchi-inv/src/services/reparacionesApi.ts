@@ -4,7 +4,7 @@ import type { AxiosResponse } from "axios";
 // Importa los tipos necesarios, incluyendo el nuevo tipo combinado
 import type { HistorialCombinado, Reparacion } from "../types/equipo";
 
-const API_BASE = `${process.env.REACT_APP_API_URL}/reparaciones`;
+const API_BASE = `${import.meta.env.VITE_API_URL}/reparaciones`;
 
 export interface IniciarReparacionPayload {
   id_equipo: number;
