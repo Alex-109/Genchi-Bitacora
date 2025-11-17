@@ -137,8 +137,7 @@ export default function TarjetaEquipo({ equipo, onEliminar, onActualizarLista }:
 
   return (
     <>
-      <div className={`relative p-4 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 border-2 ${borderClass} flex flex-col h-full overflow-hidden`}>
-        
+        <div className={`relative p-4 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 border-2 ${borderClass} flex flex-col h-full overflow-hidden bg-white`}>        
         <div className="absolute top-1 right-3 z-20 flex items-center gap-2"> 
           <span className={`text-xs font-semibold px-2 py-1 rounded-full ${badgeClass} select-none whitespace-nowrap`}>
             {estadoTexto}

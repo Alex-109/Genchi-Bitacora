@@ -17,16 +17,17 @@ export default function Navbar() {
   return (
     <div className="sticky top-0 z-40">
       <nav className="bg-green-800 text-white p-4 flex justify-between items-center shadow-lg">
-        {/* Logo y Navegación */}
-        <div className="flex items-center gap-6">
-          {/* ✅ Logo Gendarmería */}
+        {/* Logo a la izquierda */}
+        <div className="flex items-center">
           <img 
-            src="/public/Logo_navbar.png" 
+            src="/Logo_navbar.png" 
             alt="Gendarmería de Chile" 
-            className="h-10 w-auto" // Ajusta altura según necesites
+            className="h-10 w-auto"
           />
-          
-          {/* Navegación principal */}
+        </div>
+
+        {/* ✅ Navegación CENTRADA */}
+        <div className="flex-1 flex justify-center">
           <div className="flex gap-3">
             <Link to="/registro" className={linkClasses("/registro")}>
               Registrar Equipo
@@ -40,7 +41,7 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Ícono del carrito */}
+        {/* Ícono del carrito a la derecha */}
         <div className="relative">
           <button
             onClick={toggleCarrito}

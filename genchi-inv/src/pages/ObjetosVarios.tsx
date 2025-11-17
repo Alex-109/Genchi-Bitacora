@@ -4,7 +4,7 @@ import { obtenerUnidades } from '../services/unidadesApi';
 import { useCarrito, type ItemCarrito } from '../context/CarritoContext';
 import type { ObjetoVario } from '../types/objetosVarios';
 import ModalObjetoVario from '../components/ModalObjetosVarios';
-
+import type { FiltrosObjetosVarios } from '../types/objetosVarios';
 interface Filtros {
   unidad: string;
   buscar: string;
@@ -19,6 +19,19 @@ const ObjetosVariosPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingObjeto, setEditingObjeto] = useState<ObjetoVario | null>(null);
+
+  // 🔹 PAGINACIÓN
+  const [pagina, setPagina] = useState(1);
+  const [limit] = useState(9);
+  const [paginacion, setPaginacion] = useState({
+    paginaActual: 1,
+    totalPaginas: 1,
+    totalObjetos: 0,
+    hasNext: false,
+    hasPrev: false
+  });
+
+  // 🔹 FILTROS
   const [filters, setFilters] = useState<Filtros>({
     unidad: 'todas',
     buscar: '',
@@ -26,79 +39,78 @@ const ObjetosVariosPage: React.FC = () => {
     fechaFin: '',
     usarRango: false
   });
-  
+
   const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
-  // ✅ Obtener funciones del carrito
-  const { carrito, agregarAlCarrito, estaEnCarrito } = useCarrito();
+  const { agregarAlCarrito, estaEnCarrito } = useCarrito();
 
-  // ✅ Función para agregar objeto al carrito
+  // 🔹 Agregar al carrito
   const handleAgregarAlCarrito = (objeto: ObjetoVario) => {
     const itemCarrito: ItemCarrito = {
       id: objeto.id,
       tipo: 'objeto',
       nombre: objeto.nombre,
       unidad: objeto.unidad,
-      // Puedes agregar más campos si los necesitas
     };
     agregarAlCarrito(itemCarrito);
   };
 
-  // ✅ Cargar unidades al iniciar
+  // 🔹 Cargar unidades
   useEffect(() => {
     const cargarUnidades = async () => {
       try {
         const unidadesData = await obtenerUnidades();
         setUnidades(unidadesData);
-      } catch (error) {
-        console.error('Error cargando unidades:', error);
+      } catch {
         setUnidades([]);
       }
     };
     cargarUnidades();
   }, []);
 
+  // ============================================================
+  // 🔹 CARGAR OBJETOS (con filtros y paginación)
+  // ============================================================
   const cargarObjetos = useCallback(async () => {
-    try {
-      setLoading(true);
-      
-      const filtrosLimpios: Partial<Filtros> = {};
-      
-      if (filters.unidad !== 'todas') {
-        filtrosLimpios.unidad = filters.unidad;
-      }
-      if (filters.buscar.trim() !== '') {
-        filtrosLimpios.buscar = filters.buscar;
-      }
-      
-      if (filters.usarRango) {
-        if (filters.fechaInicio) {
-          filtrosLimpios.fechaInicio = filters.fechaInicio;
-        }
-        if (filters.fechaFin) {
-          filtrosLimpios.fechaFin = filters.fechaFin;
-        }
-      } else {
-        if (filters.fechaInicio) {
-          filtrosLimpios.fechaInicio = filters.fechaInicio;
-          filtrosLimpios.fechaFin = filters.fechaInicio;
-        }
-      }
-      
-      const data = await objetosVariosApi.obtenerTodos(filtrosLimpios);
-      setObjetos(data);
-    } catch (error) {
-      console.error('Error cargando objetos varios:', error);
-      alert('Error al cargar los objetos varios');
-    } finally {
-      setLoading(false);
-    }
-  }, [filters]);
+  try {
+    setLoading(true);
 
-  useEffect(() => {
-    if (searchTimeout) {
-      clearTimeout(searchTimeout);
+    const filtrosLimpios: FiltrosObjetosVarios = {};
+
+    if (filters.unidad !== 'todas') filtrosLimpios.unidad = filters.unidad;
+    if (filters.buscar.trim() !== '') filtrosLimpios.buscar = filters.buscar;
+
+    if (filters.usarRango) {
+      if (filters.fechaInicio) filtrosLimpios.fechaInicio = filters.fechaInicio;
+      if (filters.fechaFin) filtrosLimpios.fechaFin = filters.fechaFin;
+    } else {
+      if (filters.fechaInicio) {
+        filtrosLimpios.fechaInicio = filters.fechaInicio;
+        filtrosLimpios.fechaFin = filters.fechaInicio;
+      }
     }
+
+    // ⚡ Usar página y límite si tienes paginación
+    filtrosLimpios.pagina = pagina;  
+    filtrosLimpios.limit = limit;
+
+    const res = await objetosVariosApi.obtenerTodos(filtrosLimpios);
+
+    setObjetos(res.data);          // array de objetos
+    setPaginacion(res.paginacion); // info de paginación
+
+  } catch (error) {
+    console.error('Error cargando objetos varios:', error);
+    alert('Error al cargar los objetos varios');
+  } finally {
+    setLoading(false);
+  }
+}, [filters, pagina, limit]);
+
+
+  // 🔹 Recargar cuando cambian filtros o página
+  useEffect(() => {
+    if (searchTimeout) clearTimeout(searchTimeout);
 
     const timeout = setTimeout(() => {
       cargarObjetos();
@@ -107,17 +119,19 @@ const ObjetosVariosPage: React.FC = () => {
     setSearchTimeout(timeout);
 
     return () => {
-      if (searchTimeout) {
-        clearTimeout(searchTimeout);
-      }
+      if (searchTimeout) clearTimeout(searchTimeout);
     };
-  }, [filters, cargarObjetos]);
+  }, [filters, pagina, cargarObjetos]);
 
+  // ============================================================
+  // 🔹 HANDLERS
+  // ============================================================
   const handleUsarRangoChange = (usarRango: boolean) => {
+    setPagina(1);
     setFilters(prev => ({
       ...prev,
       usarRango,
-      fechaFin: usarRango ? prev.fechaFin : ''
+      fechaFin: usarRango ? prev.fechaFin : ""
     }));
   };
 
@@ -132,17 +146,13 @@ const ObjetosVariosPage: React.FC = () => {
   };
 
   const handleEliminarObjeto = async (objeto: ObjetoVario) => {
-    if (!window.confirm(`¿Estás seguro de eliminar "${objeto.nombre}"?`)) {
-      return;
-    }
+    if (!window.confirm(`¿Eliminar "${objeto.nombre}"?`)) return;
 
     try {
       await objetosVariosApi.eliminar(objeto.id);
       cargarObjetos();
-      alert('Objeto eliminado exitosamente');
-    } catch (error) {
-      console.error('Error eliminando objeto:', error);
-      alert('Error al eliminar el objeto');
+    } catch {
+      alert("Error al eliminar el objeto");
     }
   };
 
@@ -157,10 +167,12 @@ const ObjetosVariosPage: React.FC = () => {
   };
 
   const handleFilterChange = (key: keyof Filtros, value: string) => {
+    setPagina(1);
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
   const handleLimpiarFiltros = () => {
+    setPagina(1);
     setFilters({
       unidad: 'todas',
       buscar: '',
@@ -170,62 +182,54 @@ const ObjetosVariosPage: React.FC = () => {
     });
   };
 
-  const formatFecha = (fechaString: string | undefined): string => {
-    if (!fechaString) return 'Sin fecha';
-    try {
-      const fecha = new Date(fechaString);
-      if (isNaN(fecha.getTime())) {
-        return 'Fecha inválida';
-      }
-      return fecha.toLocaleDateString();
-    } catch (error) {
-      console.error('Error formateando fecha:', error);
-      return 'Error fecha';
-    }
+  const formatFecha = (fechaString?: string) => {
+    if (!fechaString) return "Sin fecha";
+    const fecha = new Date(fechaString);
+    if (isNaN(fecha.getTime())) return "Fecha inválida";
+    return fecha.toLocaleDateString();
   };
 
   if (loading && objetos.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-xl">Cargando objetos varios...</div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-xl bg-white p-6 rounded-lg shadow-lg">
+          Cargando objetos varios...
+        </div>
       </div>
     );
   }
 
+  // ============================================================
+  // 🔹 RENDER COMPLETO
+  // ============================================================
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Gestión de Objetos Varios
-          </h1>
-          <p className="text-gray-600">
-            Administra los objetos varios del sistema
-          </p>
-        </div>
 
-        {/* Filtros y Botón Crear - DISEÑO MEJORADO */}
+        {/* ================== FILTROS ================== */}
         <div className="bg-white p-6 rounded-lg shadow-md mb-6">
           <div className="space-y-4">
-            {/* Fila 1: Unidad y Búsqueda */}
+            
+            {/* FILA 1 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Unidad */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Unidad
                 </label>
                 <select
                   value={filters.unidad}
-                  onChange={(e) => handleFilterChange('unidad', e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  onChange={(e) => handleFilterChange("unidad", e.target.value)}
+                  className="w-full border rounded-md px-3 py-2 bg-white"
                 >
                   <option value="todas">Todas las unidades</option>
-                  {unidades.map((unidad) => (
-                    <option key={unidad} value={unidad}>{unidad}</option>
+                  {unidades.map(u => (
+                    <option key={u} value={u}>{u}</option>
                   ))}
                 </select>
               </div>
 
+              {/* Buscar */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Buscar
@@ -233,83 +237,75 @@ const ObjetosVariosPage: React.FC = () => {
                 <input
                   type="text"
                   value={filters.buscar}
-                  onChange={(e) => handleFilterChange('buscar', e.target.value)}
+                  onChange={(e) => handleFilterChange("buscar", e.target.value)}
                   placeholder="Nombre, comentarios..."
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full border rounded-md px-3 py-2 bg-white"
                 />
               </div>
             </div>
 
-            {/* Fila 2: Fechas y Checkbox */}
+            {/* FILA 2 */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {/* Checkbox */}
+
+              {/* Check rango */}
               <div className="flex items-center">
                 <label className="flex items-center space-x-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={filters.usarRango}
                     onChange={(e) => handleUsarRangoChange(e.target.checked)}
-                    className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    className="h-4 w-4"
                   />
-                  <span className="text-sm font-medium text-gray-700">
-                    Buscar por rango de fechas
-                  </span>
+                  <span className="text-sm">Buscar por rango</span>
                 </label>
               </div>
 
-              {/* Fecha Desde */}
+              {/* Fecha desde */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {filters.usarRango ? 'Fecha desde' : 'Fecha específica'}
+                <label className="block text-sm mb-1">
+                  {filters.usarRango ? "Fecha desde" : "Fecha específica"}
                 </label>
                 <input
                   type="date"
                   value={filters.fechaInicio}
-                  onChange={(e) => handleFilterChange('fechaInicio', e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  onChange={(e) => handleFilterChange("fechaInicio", e.target.value)}
+                  className="w-full border rounded-md px-3 py-2"
                 />
               </div>
 
-              {/* Fecha Hasta - Solo si está en modo rango */}
+              {/* Fecha hasta */}
               {filters.usarRango && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Fecha hasta
-                  </label>
+                  <label className="block text-sm mb-1">Fecha hasta</label>
                   <input
                     type="date"
                     value={filters.fechaFin}
-                    onChange={(e) => handleFilterChange('fechaFin', e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    onChange={(e) => handleFilterChange("fechaFin", e.target.value)}
+                    className="w-full border rounded-md px-3 py-2"
                   />
                 </div>
               )}
 
-              {/* Espacio flexible para mantener alineación */}
               {!filters.usarRango && <div></div>}
             </div>
 
-            {/* Fila 3: Botones e Información */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 border-t border-gray-200">
-              <div className="text-sm text-gray-600">
-                <span>Total: {objetos.length} objeto(s)</span>
-                {(filters.unidad !== 'todas' || filters.buscar || filters.fechaInicio) && (
-                  <span className="ml-2 text-indigo-600">
-                    • {filters.usarRango ? 'Modo rango' : 'Modo fecha específica'}
-                  </span>
-                )}
-              </div>
+            {/* FILA 3 */}
+            <div className="flex flex-col sm:flex-row justify-between pt-4 border-t">
+              <span className="text-sm text-gray-600">
+                Total: {paginacion.totalObjetos} objeto(s)
+              </span>
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 mt-3 sm:mt-0">
                 <button
                   onClick={handleLimpiarFiltros}
-                  className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors text-sm"
+                  className="bg-gray-500 text-white px-4 py-2 rounded"
                 >
                   Limpiar filtros
                 </button>
+
                 <button
                   onClick={handleCrearObjeto}
-                  className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors text-sm"
+                  className="bg-indigo-600 text-white px-4 py-2 rounded"
                 >
                   + Nuevo objeto
                 </button>
@@ -318,63 +314,54 @@ const ObjetosVariosPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Lista de Objetos */}
+        {/* ================== LISTA ================== */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {objetos.map((objeto) => {
+          {objetos.map(objeto => {
             const enCarrito = estaEnCarrito(objeto.id);
-            
+
             return (
-              <div key={objeto.id} className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
-                <div className="flex justify-between items-start mb-3">
-                  <h3 className="text-lg font-semibold text-gray-800 truncate">
-                    {objeto.nombre}
-                  </h3>
-                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+              <div key={objeto.id} className="bg-white rounded-lg shadow-md p-6">
+                <div className="flex justify-between mb-3">
+                  <h3 className="text-lg font-semibold">{objeto.nombre}</h3>
+                  <span className="text-xs bg-gray-100 px-2 py-1 rounded">
                     {formatFecha(objeto.createdAt)}
                   </span>
                 </div>
 
                 <div className="space-y-2 mb-4">
-                  <p className="text-sm text-gray-600">
-                    <span className="font-medium">Unidad:</span> {objeto.unidad}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    <span className="font-medium">ID:</span> {objeto.id}
-                  </p>
-                  {objeto.comentarios && (
-                    <p className="text-sm text-gray-600">
-                      <span className="font-medium">Comentarios:</span> {objeto.comentarios}
-                    </p>
-                  )}
+                  <p><b>Unidad:</b> {objeto.unidad}</p>
+                  <p><b>ID:</b> {objeto.id}</p>
+                  {objeto.comentarios && <p><b>Comentarios:</b> {objeto.comentarios}</p>}
                 </div>
 
+                {/* Botones */}
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleEditarObjeto(objeto)}
-                    className="flex-1 bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 transition-colors"
+                    className="flex-1 bg-blue-600 text-white px-3 py-2 rounded"
                   >
                     Editar
                   </button>
+
                   <button
                     onClick={() => handleEliminarObjeto(objeto)}
-                    className="flex-1 bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700 transition-colors"
+                    className="flex-1 bg-red-600 text-white px-3 py-2 rounded"
                   >
                     Eliminar
                   </button>
                 </div>
 
-                {/* ✅ Botón Agregar al Carrito */}
-                <div className="mt-3 pt-3 border-t border-gray-200">
+                <div className="mt-3 pt-3 border-t">
                   <button
                     onClick={() => handleAgregarAlCarrito(objeto)}
                     disabled={enCarrito}
-                    className={`w-full px-3 py-2 rounded text-sm font-medium transition-colors ${
+                    className={`w-full px-3 py-2 rounded ${
                       enCarrito
-                        ? 'bg-green-600 text-white cursor-not-allowed'
-                        : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                        ? "bg-green-600 text-white cursor-not-allowed"
+                        : "bg-indigo-600 text-white"
                     }`}
                   >
-                    {enCarrito ? '✓ En Carrito' : '+ Agregar al Carrito'}
+                    {enCarrito ? "✓ En Carrito" : "+ Agregar al Carrito"}
                   </button>
                 </div>
               </div>
@@ -382,20 +369,52 @@ const ObjetosVariosPage: React.FC = () => {
           })}
         </div>
 
+        {/* ================== SIN RESULTADOS ================== */}
         {objetos.length === 0 && !loading && (
           <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">No se encontraron objetos varios</p>
+            <p className="text-white text-lg">No se encontraron objetos</p>
             <button
               onClick={handleCrearObjeto}
-              className="mt-4 bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 transition-colors"
+              className="mt-4 bg-indigo-600 text-white px-6 py-2 rounded"
             >
               Crear primer objeto
             </button>
           </div>
         )}
+
+        {/* ================== PAGINACIÓN ================== */}
+        <div className="flex justify-center items-center mt-10 gap-4">
+          <button
+            disabled={!paginacion.hasPrev}
+            onClick={() => setPagina(prev => Math.max(1, prev - 1))}
+            className={`px-4 py-2 rounded ${
+              paginacion.hasPrev
+                ? "bg-indigo-600 text-white"
+                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            }`}
+          >
+            ← Anterior
+          </button>
+
+          <span className="text-white font-medium">
+            Página {paginacion.paginaActual} de {paginacion.totalPaginas}
+          </span>
+
+          <button
+            disabled={!paginacion.hasNext}
+            onClick={() => setPagina(prev => prev + 1)}
+            className={`px-4 py-2 rounded ${
+              paginacion.hasNext
+                ? "bg-indigo-600 text-white"
+                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            }`}
+          >
+            Siguiente →
+          </button>
+        </div>
       </div>
 
-      {/* Modal */}
+      {/* MODAL */}
       {showModal && (
         <ModalObjetoVario
           objeto={editingObjeto}
