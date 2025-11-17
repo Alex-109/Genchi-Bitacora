@@ -137,7 +137,7 @@ export default function ModalHistorial({ idEquipo, onClose }: Props) {
           </p>
         ) : (
           <ul className="space-y-6">
-            {historial.map((r, index) => (
+            {historial.map((r) => (
               <li
                 key={r.id_repa}
                 className="border-l-4 border-indigo-500 rounded-lg p-5 bg-gray-50 hover:bg-gray-100 transition"

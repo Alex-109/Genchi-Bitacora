@@ -4,7 +4,6 @@ import ModalHistorial from "./ModalHistorial";
 import ModalReparacion from "./ModalReparacion";
 import BotonIngreso from "./BotonIngreso";
 import { format } from "date-fns";
-import { usePerfil } from "../context/PerfilContext";
 import { useCarrito } from "../context/CarritoContext";
 
 interface Props {
@@ -76,7 +75,7 @@ export default function TarjetaEquipo({ equipo, onEliminar, onActualizarLista }:
   const [mostrarReparacion, setMostrarReparacion] = useState(false);
   const [agregandoAlCarrito, setAgregandoAlCarrito] = useState(false);
   
-  const { perfilSeleccionado } = usePerfil();
+  
   const { agregarAlCarrito, estaEnCarrito } = useCarrito();
 
   const gridColsClass = "grid-cols-1 md:grid-cols-2";
