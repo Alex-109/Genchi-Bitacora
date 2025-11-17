@@ -13,19 +13,19 @@ export const perfiles: Perfil[] = [
   {
     id: 'paola',
     nombre: 'PAOLA GUERRA CHANAY',
-    cargo: 'Encargada de Informática',
+    cargo: 'Jefa de Informática',
     icono: '👩‍💻' // o URL de imagen
   },
   {
     id: 'hombre1',
-    nombre: 'CARLOS MARTÍNEZ LÓPEZ',
-    cargo: 'Técnico Informático',
+    nombre: 'Patricio',
+    cargo: 'Técnico',
     icono: '👨‍💻'
   },
   {
     id: 'hombre2', 
-    nombre: 'ANDRÉS GARCÍA ROJAS',
-    cargo: 'Soporte Técnico',
+    nombre: 'Alejandro Fuentes',
+    cargo: 'Tecnico',
     icono: '👨‍🔧'
   }
 ];

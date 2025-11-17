@@ -31,7 +31,7 @@ function App() {
             <SelectorPerfil />
             <main className="relative z-10">
               <Routes>
-                <Route path="/" element={<Navigate to="/registro" replace />} />
+                <Route path="/" element={<Navigate to="/busqueda" replace />} />
                 <Route path="/registro" element={<FormularioEquipo />} />
                 <Route path="/busqueda" element={<BusquedaEquipos />} />
                 <Route path="/objetos-varios" element={<ObjetosVarios />} />
