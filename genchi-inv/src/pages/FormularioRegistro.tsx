@@ -86,16 +86,24 @@ export default function FormularioEquipo() {
     e.preventDefault();
     try {
       // ✅ Asegurar que los campos numéricos sean números válidos
+
+      
+      // ✅ SOLUCIÓN: Eliminar nombre_equipo solo para impresoras
+      let datosParaEnviar = { ...form };
+
+      if (form.tipo_equipo === 'impresora') {
+        delete datosParaEnviar.nombre_equipo;
+      }
+
       const equipoParaEnviar = {
-        ...form,
-        ram: form.ram || 0, // Asegurar que no sea undefined
-        almacenamiento: form.almacenamiento || 0, // Asegurar que no sea undefined
+        ...datosParaEnviar,
+        ram: form.ram || 0,
+        almacenamiento: form.almacenamiento || 0,
         historial_ingresos: [{ 
           fecha: new Date().toISOString(), 
           estado: "en proceso de reparacion" as "en proceso de reparacion" 
         }],
       };
-
       await crearEquipo(equipoParaEnviar);
       setModalExito(true);
       
@@ -130,6 +138,25 @@ export default function FormularioEquipo() {
   };
 
   const marcasActuales = marcasPorTipo[form.tipo_equipo] || [];
+
+  // ✅ AGREGAR esta función en tu componente
+const handleIPChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const { name, value } = e.target;
+  
+  // Solo permitir números y puntos
+  const cleanedValue = value.replace(/[^0-9.]/g, '');
+  
+  // Validar que no haya puntos consecutivos
+  const noConsecutiveDots = cleanedValue.replace(/\.{2,}/g, '.');
+  
+  // Validar que no empiece con punto
+  const noStartingDot = noConsecutiveDots.replace(/^\./, '');
+  
+  // Limitar a 15 caracteres (xxx.xxx.xxx.xxx)
+  const limitedValue = noStartingDot.slice(0, 15);
+  
+  setForm((prev) => ({ ...prev, [name]: limitedValue }));
+};
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-10 relative">
@@ -188,6 +215,15 @@ export default function FormularioEquipo() {
 
           {(form.tipo_equipo === "pc" || form.tipo_equipo === "notebook") && (
             <>
+              {/* ✅ CAMPO IP AGREGADO AQUÍ */}
+                <input 
+                name="ip" 
+                value={form.ip} 
+                onChange={handleIPChange} 
+                placeholder="Dirección IP (ej: 192.168.1.100)" 
+                className="input border-2 border-gray-400 rounded-lg px-3 py-2" 
+              />
+              
               <input name="nombre_equipo" value={form.nombre_equipo} onChange={handleChange} placeholder="Nombre de Equipo" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
               <input name="nombre_usuario" value={form.nombre_usuario} onChange={handleChange} placeholder="Nombre de Usuario" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
               <input name="windows" value={form.windows} onChange={handleChange} placeholder="Windows" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
@@ -211,10 +247,9 @@ export default function FormularioEquipo() {
                 </label>
               </div>
 
-              {/* ✅ CAMBIADO: Usar handleNumberChange para campos numéricos */}
               <input 
                 name="ram" 
-                value={form.ram === 0 ? "" : form.ram} // Mostrar vacío si es 0
+                value={form.ram === 0 ? "" : form.ram}
                 onChange={handleNumberChange}
                 placeholder="RAM (ej: 8)" 
                 className="input border-2 border-gray-400 rounded-lg px-3 py-2" 
@@ -224,10 +259,9 @@ export default function FormularioEquipo() {
 
               <input name="cpu" value={form.cpu} onChange={handleChange} placeholder="CPU" className="input border-2 border-gray-400 rounded-lg px-3 py-2" />
               
-              {/* ✅ CAMBIADO: Usar handleNumberChange para campos numéricos */}
               <input
                 name="almacenamiento"
-                value={form.almacenamiento === 0 ? "" : form.almacenamiento} // Mostrar vacío si es 0
+                value={form.almacenamiento === 0 ? "" : form.almacenamiento}
                 onChange={handleNumberChange}
                 placeholder="Almacenamiento (ej: 256)"
                 className="input border-2 border-gray-400 rounded-lg px-3 py-2"

@@ -4,6 +4,8 @@ import type { Equipo } from "../types/equipo";
 import { iniciarReparacion } from "../services/reparacionesApi";
 // ✅ IMPORTACIÓN AÑADIDA: Para cambiar el estado después de la reparación
 import { actualizarEstadoEquipo } from "../services/equiposApi";
+// Obtener unidades para poblar el select
+import { obtenerUnidades } from "../services/unidadesApi";
 
 interface Props {
   equipo: Equipo;
@@ -14,9 +16,10 @@ interface Props {
 // **Componente Auxiliar para un campo de formulario**
 interface CampoProps {
   label: string;
-  name: keyof Equipo | "windows" | "ver_win" | "ram_gb";
+  name: keyof Equipo | "windows" | "ver_win" | "ram_gb" | "ram" | "almacenamiento";
   value: string | number | undefined;
-  type?: "text" | "select" | "textarea";
+  // Añadimos 'number' para renderizar inputs numéricos
+  type?: "text" | "select" | "textarea" | "number";
   options?: { value: string; label: string }[];
   onChange: (
     e: React.ChangeEvent<
@@ -55,6 +58,18 @@ const Campo: React.FC<CampoProps> = ({
         onChange={onChange}
         className="w-full rounded-lg border border-gray-200 px-3 py-2 min-h-[60px] focus:outline-none focus:ring-2 focus:ring-indigo-300"
       />
+    ) : type === "number" ? (
+      <input
+        name={name as string}
+        value={value ?? ""}
+        onChange={onChange}
+        type="number"
+        inputMode="numeric"
+        pattern="\d*"
+        step="1"
+        min={0}
+        className="w-full rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+      />
     ) : (
       <input
         name={name as string}
@@ -75,10 +90,29 @@ export default function ModalReparacion({
   const [obs, setObs] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [unidades, setUnidades] = useState<string[]>([]);
 
   useEffect(() => {
     setFormData(equipo ?? {});
   }, [equipo]);
+
+  // Obtener unidades al abrir el modal / montar componente
+  useEffect(() => {
+    let mounted = true;
+    const fetchUnidades = async () => {
+      try {
+        const list = await obtenerUnidades();
+        if (mounted) setUnidades(list || []);
+      } catch (err) {
+        console.warn("No se pudieron obtener unidades:", err);
+        if (mounted) setUnidades([]);
+      }
+    };
+    fetchUnidades();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -86,6 +120,13 @@ export default function ModalReparacion({
     >
   ) => {
     const { name, value } = e.target;
+    // Forzamos que ram y almacenamiento sean números (sólo dígitos)
+    if (name === "ram" || name === "almacenamiento") {
+      const sanitized = String(value).replace(/\D+/g, "");
+      setFormData((prev) => ({ ...prev, [name]: sanitized === "" ? undefined : Number(sanitized) }));
+      return;
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -165,7 +206,7 @@ export default function ModalReparacion({
     { label: "Modelo", name: "modelo", value: formData.modelo, onChange: handleChange },
     { label: "Serie", name: "serie", value: formData.serie, onChange: handleChange },
     { label: "Número de Inventario", name: "num_inv", value: formData.num_inv, onChange: handleChange },
-    { label: "Unidad", name: "nombre_unidad", value: formData.nombre_unidad, onChange: handleChange },
+  { label: "Unidad", name: "nombre_unidad", value: formData.nombre_unidad, onChange: handleChange, type: "select", options: unidades.map((u: string) => ({ value: u, label: u })) },
     { label: "IP", name: "ip", value: formData.ip, onChange: handleChange },
   ];
 
@@ -188,8 +229,9 @@ export default function ModalReparacion({
         onChange: handleChange,
       },
       { label: "CPU", name: "cpu", value: formData.cpu, onChange: handleChange },
-      { label: "RAM (GB)", name: "ram", value: formData.ram, onChange: handleChange },
-      { label: "Almacenamiento", name: "almacenamiento", value: formData.almacenamiento, onChange: handleChange },
+      // Aqui verificamos que ram y almacenamiento sean numeros (type:number)
+      { label: "RAM (GB)", name: "ram", value: formData.ram, onChange: handleChange, type: "number" },
+      { label: "Almacenamiento (GB)", name: "almacenamiento", value: formData.almacenamiento, onChange: handleChange, type: "number" },
       { label: "Tipo de Almacenamiento", name: "tipo_almacenamiento", value: formData.tipo_almacenamiento, onChange: handleChange },
     ];
   } else if (equipo.tipo_equipo === "impresora") {
@@ -208,11 +250,7 @@ export default function ModalReparacion({
     onChange: handleChange,
   };
 
-  const todosLosCampos = [...camposComunes, ...camposEspecificos, campoComentarios];
-  const totalCampos = todosLosCampos.length;
-  const mitad = Math.ceil(totalCampos / 2);
-  const columna1 = todosLosCampos.slice(0, mitad);
-  const columna2 = todosLosCampos.slice(mitad);
+  // Nota: mantenemos render actual (camposComunes / camposEspecificos). columnas previas removidas para evitar variables no usadas.
 
   // ===== RENDER =====
   return (

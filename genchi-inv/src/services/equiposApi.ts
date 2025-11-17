@@ -1,47 +1,46 @@
-// src/services/equiposApi.ts (Asumo que este es el nombre del archivo)
-
+// src/services/equiposApi.ts - VERSIÓN CORREGIDA
 import axios from "axios";
 import type { Equipo } from "../types/equipo";
 
 const API_BASE = "http://localhost:5000/api/equipos";
 
-// Crear equipo
+// ✅ CORREGIDO: Crear equipo
 export const crearEquipo = async (equipo: Omit<Equipo, "id" | "createdAt" | "updatedAt">) => {
-  return axios.post(`${API_BASE}/crear`, equipo);
+  return axios.post(API_BASE, equipo); // ✅ QUITA "/crear"
 };
 
-// Obtener unidades
-// src/services/equiposApi.ts (Corrección)
-// ...
+// ✅ CORREGIDO: Usar servicio de unidades correcto
 export const obtenerUnidades = async () => {
-  // ✅ Cambiado para devolver solo la propiedad .data
-  const response = await axios.get(`${API_BASE}/unidades`);
-  return response.data; // Esto ahora devuelve el array de objetos Unidad[]
+  // ❌ ELIMINA ESTO - usa el servicio de unidades separado
+  throw new Error("Usar unidadesApi.obtenerUnidades() en lugar de esto");
 };
 
-// Buscar equipos con un solo objeto de filtros
+// ✅ CORRECTO: Buscar equipos
 export const buscarEquipos = async (filtros: any) => {
-  return axios.post(`${API_BASE}/buscar`, filtros);
+  return axios.post(`${API_BASE}/buscar`, filtros);
 };
 
-// Eliminar equipo
+// ✅ CORREGIDO: Eliminar equipo
 export const eliminarEquipoApi = async (id: number) => {
-  return axios.delete(`${API_BASE}/eliminar/${id}`);
+  return axios.delete(`${API_BASE}/${id}`); // ✅ QUITA "/eliminar"
 };
 
+// ✅ CORRECTO: Registrar ingreso
 export const registrarIngreso = async (idEquipo: number, estado: string) => {
-  // La ruta correcta era /ingreso/:idEquipo (según tu router)
-  return axios.post(`${API_BASE}/ingreso/${idEquipo}`, { estado }); 
+  return axios.post(`${API_BASE}/${idEquipo}/ingreso`, { estado });
 };
 
-// ✅ CORREGIDO: 
-// Actualizar estado (o cualquier campo) usando la ruta PUT /actualizar
-// y enviando el body que el backend espera: { id, changes }
+// ✅ CORRECTO: Actualizar estado
 export const actualizarEstadoEquipo = async (id: number, estado: string) => {
-  return axios.put(`${API_BASE}/actualizar`, { 
+  return axios.put(API_BASE, {
     id: id,
-    changes: {
-      estado: estado
-    }
+    changes: { estado: estado }
+  });
+};
+
+// ✅ Obtener últimos equipos
+export const obtenerUltimosEquipos = async (limit: number = 10) => {
+  return axios.get(`${API_BASE}/ultimos`, { 
+    params: { limit } 
   });
 };
