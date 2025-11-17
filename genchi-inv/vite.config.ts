@@ -4,12 +4,12 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: "/genchi-inv/", // <-- IMPORTANTE: apunta a la carpeta de GitHub Pages
+  base: "/", // ⚠️ Cambiado a raíz para Netlify
   server: {
     port: 3000,
     proxy: {
       "/api": {
-        target: "http://localhost:5000", // URL de tu backend en local
+        target: "https://genchi-bitacora-back.onrender.com", // tu backend en Render
         changeOrigin: true,
         secure: false,
       },

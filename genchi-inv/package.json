@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://Alex-109.github.io/GENCHI-BITACORA/genchi-inv",
+
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
