@@ -4,7 +4,9 @@ import { obtenerUnidades } from '../services/unidadesApi';
 import { useCarrito, type ItemCarrito } from '../context/CarritoContext';
 import type { ObjetoVario } from '../types/objetosVarios';
 import ModalObjetoVario from '../components/ModalObjetosVarios';
+import ModalConfirmacionObjeto from '../components/ModalConfirmacionObjeto'; // ✅ NUEVO IMPORT
 import type { FiltrosObjetosVarios } from '../types/objetosVarios';
+
 interface Filtros {
   unidad: string;
   buscar: string;
@@ -19,6 +21,10 @@ const ObjetosVariosPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingObjeto, setEditingObjeto] = useState<ObjetoVario | null>(null);
+  
+  // ✅ NUEVO ESTADO PARA MODAL DE CONFIRMACIÓN
+  const [showModalConfirmacion, setShowModalConfirmacion] = useState(false);
+  const [objetoAEliminar, setObjetoAEliminar] = useState<ObjetoVario | null>(null);
 
   // 🔹 PAGINACIÓN
   const [pagina, setPagina] = useState(1);
@@ -72,41 +78,40 @@ const ObjetosVariosPage: React.FC = () => {
   // 🔹 CARGAR OBJETOS (con filtros y paginación)
   // ============================================================
   const cargarObjetos = useCallback(async () => {
-  try {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    const filtrosLimpios: FiltrosObjetosVarios = {};
+      const filtrosLimpios: FiltrosObjetosVarios = {};
 
-    if (filters.unidad !== 'todas') filtrosLimpios.unidad = filters.unidad;
-    if (filters.buscar.trim() !== '') filtrosLimpios.buscar = filters.buscar;
+      if (filters.unidad !== 'todas') filtrosLimpios.unidad = filters.unidad;
+      if (filters.buscar.trim() !== '') filtrosLimpios.buscar = filters.buscar;
 
-    if (filters.usarRango) {
-      if (filters.fechaInicio) filtrosLimpios.fechaInicio = filters.fechaInicio;
-      if (filters.fechaFin) filtrosLimpios.fechaFin = filters.fechaFin;
-    } else {
-      if (filters.fechaInicio) {
-        filtrosLimpios.fechaInicio = filters.fechaInicio;
-        filtrosLimpios.fechaFin = filters.fechaInicio;
+      if (filters.usarRango) {
+        if (filters.fechaInicio) filtrosLimpios.fechaInicio = filters.fechaInicio;
+        if (filters.fechaFin) filtrosLimpios.fechaFin = filters.fechaFin;
+      } else {
+        if (filters.fechaInicio) {
+          filtrosLimpios.fechaInicio = filters.fechaInicio;
+          filtrosLimpios.fechaFin = filters.fechaInicio;
+        }
       }
+
+      // ⚡ Usar página y límite si tienes paginación
+      filtrosLimpios.pagina = pagina;  
+      filtrosLimpios.limit = limit;
+
+      const res = await objetosVariosApi.obtenerTodos(filtrosLimpios);
+
+      setObjetos(res.data);          // array de objetos
+      setPaginacion(res.paginacion); // info de paginación
+
+    } catch (error) {
+      console.error('Error cargando objetos varios:', error);
+      alert('Error al cargar los objetos varios');
+    } finally {
+      setLoading(false);
     }
-
-    // ⚡ Usar página y límite si tienes paginación
-    filtrosLimpios.pagina = pagina;  
-    filtrosLimpios.limit = limit;
-
-    const res = await objetosVariosApi.obtenerTodos(filtrosLimpios);
-
-    setObjetos(res.data);          // array de objetos
-    setPaginacion(res.paginacion); // info de paginación
-
-  } catch (error) {
-    console.error('Error cargando objetos varios:', error);
-    alert('Error al cargar los objetos varios');
-  } finally {
-    setLoading(false);
-  }
-}, [filters, pagina, limit]);
-
+  }, [filters, pagina, limit]);
 
   // 🔹 Recargar cuando cambian filtros o página
   useEffect(() => {
@@ -145,15 +150,31 @@ const ObjetosVariosPage: React.FC = () => {
     setShowModal(true);
   };
 
-  const handleEliminarObjeto = async (objeto: ObjetoVario) => {
-    if (!window.confirm(`¿Eliminar "${objeto.nombre}"?`)) return;
+  // ✅ NUEVO: Manejar eliminación con modal
+  const handleEliminarObjeto = (objeto: ObjetoVario) => {
+    setObjetoAEliminar(objeto);
+    setShowModalConfirmacion(true);
+  };
 
+  // ✅ NUEVO: Confirmar eliminación
+  const confirmarEliminar = async () => {
+    if (!objetoAEliminar) return;
+    
     try {
-      await objetosVariosApi.eliminar(objeto.id);
+      await objetosVariosApi.eliminar(objetoAEliminar.id);
       cargarObjetos();
     } catch {
       alert("Error al eliminar el objeto");
+    } finally {
+      setShowModalConfirmacion(false);
+      setObjetoAEliminar(null);
     }
+  };
+
+  // ✅ NUEVO: Cancelar eliminación
+  const cancelarEliminar = () => {
+    setShowModalConfirmacion(false);
+    setObjetoAEliminar(null);
   };
 
   const handleModalClose = () => {
@@ -414,7 +435,7 @@ const ObjetosVariosPage: React.FC = () => {
         </div>
       </div>
 
-      {/* MODAL */}
+      {/* MODAL DE FORMULARIO */}
       {showModal && (
         <ModalObjetoVario
           objeto={editingObjeto}
@@ -422,6 +443,16 @@ const ObjetosVariosPage: React.FC = () => {
           onSuccess={handleModalSuccess}
           onAgregarAlCarrito={handleAgregarAlCarrito}
           estaEnCarrito={editingObjeto ? estaEnCarrito(editingObjeto.id) : false}
+        />
+      )}
+
+      {/* ✅ NUEVO MODAL DE CONFIRMACIÓN */}
+      {showModalConfirmacion && (
+        <ModalConfirmacionObjeto
+          show={showModalConfirmacion}
+          mensaje={`¿Eliminar el objeto "${objetoAEliminar?.nombre}"?`}
+          onConfirm={confirmarEliminar}
+          onCancel={cancelarEliminar}
         />
       )}
     </div>
