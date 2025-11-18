@@ -149,18 +149,51 @@ export default function BusquedaEquipos() {
   };
 
   const confirmarEliminar = async () => {
-    if (!equipoAEliminar) return;
-    try {
-      await eliminarEquipoApi(equipoAEliminar.id!);
+  if (!equipoAEliminar) return;
+  
+  try {
+    const response = await eliminarEquipoApi(equipoAEliminar.id!);
+    
+    // ✅ VERIFICAR SI FUE EXITOSO (status 200)
+    if (response.status === 200) {
       setMostrarModal(false);
       setEquipoAEliminar(null);
+      
+      // ✅ RECARGAR INMEDIATAMENTE
       const nextPage = equipos.length === 1 && paginaActual > 1 ? paginaActual - 1 : paginaActual;
-      cargarEquipos({ pagina: nextPage });
-    } catch (err) {
-      console.error("Error eliminando equipo:", err);
-      setMensajeError("No se pudo eliminar el equipo");
+      await cargarEquipos({ pagina: nextPage });
+      
+      // ✅ LIMPIAR MENSAJES DE ERROR
+      setMensajeError(null);
+    } else {
+      // Si el status no es 200, considerar como error
+      throw new Error(`Error del servidor: ${response.status}`);
     }
-  };
+    
+  } catch (err: any) {
+    console.error("Error eliminando equipo:", err);
+    
+    // ✅ MENSAJE MÁS ESPECÍFICO
+    let errorMessage = "No se pudo eliminar el equipo";
+    
+    if (err.response?.data?.message) {
+      errorMessage = err.response.data.message;
+    } else if (err.message) {
+      errorMessage = err.message;
+    }
+    
+    setMensajeError(errorMessage);
+    
+    // ✅ CERRAR MODAL DE TODAS FORMAS
+    setMostrarModal(false);
+    setEquipoAEliminar(null);
+    
+    // ✅ RECARGAR LA LISTA POR SI ACASO SÍ SE ELIMINÓ
+    setTimeout(() => {
+      cargarEquipos({ pagina: paginaActual });
+    }, 500);
+  }
+};
 
   const cancelarEliminar = () => {
     setMostrarModal(false);
