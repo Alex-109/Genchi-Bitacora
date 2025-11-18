@@ -164,11 +164,14 @@ export default function TarjetaEquipo({ equipo, onEliminar, onActualizarLista }:
         {/* 🔥 COMENTARIOS CON SCROLL SI ES MUY LARGO */}
         {equipo.comentarios && (
           <div className="mt-2 mb-4 p-3 border-l-4 border-blue-400 bg-blue-50 rounded-r-md text-gray-700 text-sm shadow-inner">
+
             <p className="font-bold text-blue-700 mb-1 flex items-center gap-1">📝 Comentarios:</p>
 
-            <div className="whitespace-pre-wrap max-h-32 overflow-y-auto pr-1">
-              {equipo.comentarios}
+            {/* 🔒 Altura fija – NO estira la tarjeta */}
+            <div className="max-h-24 overflow-y-auto pr-1">
+              <p className="whitespace-pre-wrap">{equipo.comentarios}</p>
             </div>
+
           </div>
         )}
 
