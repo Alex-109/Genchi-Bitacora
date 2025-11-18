@@ -154,7 +154,7 @@ export default function FormularioEquipo() {
 
   const handleCerrarModal = () => {
     setModalExito(false);
-    navigate("/busqueda-equipos");
+    navigate("/busqueda");
   };
 
   const marcasActuales = marcasPorTipo[form.tipo_equipo] || [];
@@ -166,7 +166,7 @@ export default function FormularioEquipo() {
           <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
             Registrar Nuevo Equipo
           </h2>
-          <p className="text-gray-600 mt-2">Complete todos los campos requeridos para el registro</p>
+      
         </div>
         
         {mensaje && (
