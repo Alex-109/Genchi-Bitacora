@@ -9,12 +9,12 @@ import { CarritoProvider } from "./context/CarritoContext";
 import { useEffect } from "react";
 
 function App() {
-  // ✅ Cambiar favicon al cargar la app
+  // ✅ Cambiar favicon al cargar la app - RUTAS CORREGIDAS
   useEffect(() => {
     const link = document.querySelector("link[rel*='icon']") as HTMLLinkElement || document.createElement('link');
     link.type = 'image/x-icon';
     link.rel = 'shortcut icon';
-    link.href = '/public/genchi.ico'; // Ajusta la ruta según tu estructura
+    link.href = '/genchi.ico'; // ✅ Ruta corregida
     document.getElementsByTagName('head')[0].appendChild(link);
   }, []);
 
@@ -22,10 +22,10 @@ function App() {
     <PerfilProvider>
       <CarritoProvider>
         <Router>
-          {/* ✅ Fondo de Gendarmería */}
+          {/* ✅ Fondo de Gendarmería - RUTA CORREGIDA */}
           <div 
             className="min-h-screen bg-cover bg-center bg-fixed"
-            style={{ backgroundImage: 'url(/public/Fondo_Genchi.jpg)' }}
+            style={{ backgroundImage: 'url(/Fondo_Genchi.jpg)' }} // ✅ Ruta corregida
           >
             <Navbar />
             <SelectorPerfil />
