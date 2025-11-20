@@ -1,4 +1,4 @@
-// src/components/ModalConfirmacion.tsx
+// src/components/ModalConfirmacionObjeto.tsx
 import { Fragment } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 
@@ -9,7 +9,7 @@ interface Props {
   show: boolean;
 }
 
-export default function ModalConfirmacion({ mensaje, onConfirm, onCancel, show }: Props) {
+export default function ModalConfirmacionObjeto({ mensaje, onConfirm, onCancel, show }: Props) {
   return (
     <Transition show={show} as={Fragment}>
       <Dialog
@@ -17,8 +17,6 @@ export default function ModalConfirmacion({ mensaje, onConfirm, onCancel, show }
         className="relative z-50"
         onClose={onCancel}
       >
-        {/* ELIMINADO: El fondo oscuro (backdrop) */}
-        
         {/* Contenedor para centrar el panel */}
         <div className="fixed inset-0 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4 text-center">
@@ -31,7 +29,7 @@ export default function ModalConfirmacion({ mensaje, onConfirm, onCancel, show }
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              {/* Panel del modal - Actualizado para coincidir con el estilo del modal de éxito */}
+              {/* Panel del modal */}
               <Dialog.Panel className="inline-block w-full max-w-md p-8 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-2xl rounded-2xl border border-gray-200">
                 <div className="text-center">
                   {/* Ícono de advertencia */}

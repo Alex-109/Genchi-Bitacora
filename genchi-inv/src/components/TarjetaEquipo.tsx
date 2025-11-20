@@ -12,7 +12,6 @@ interface Props {
   onActualizarLista: () => void;
 }
 
-// 🛠️ Función auxiliar para formatear fechas (maneja string | undefined)
 const formatDate = (dateString: string | undefined): string => {
     if (!dateString) return "—";
     try {
@@ -22,11 +21,6 @@ const formatDate = (dateString: string | undefined): string => {
     }
 }
 
-/**
- * Obtiene la fecha más reciente de un array de HistorialIngreso.
- * @param historial El arreglo de ingresos del equipo.
- * @returns La fecha del último ingreso formateada o un guión.
- */
 const getFechaUltimoIngreso = (historial: HistorialIngreso[] | undefined): string => {
     if (!historial || historial.length === 0) {
         return "—";
@@ -39,7 +33,6 @@ const getFechaUltimoIngreso = (historial: HistorialIngreso[] | undefined): strin
     return formatDate(historialOrdenado[0].fecha);
 }
 
-// Funciones auxiliares para atributos
 const AtributosComunes = ({ equipo }: { equipo: Equipo }) => (
   <>
     <p><span className="font-semibold">Marca:</span> {equipo.marca || "—"}</p>
@@ -75,16 +68,12 @@ export default function TarjetaEquipo({ equipo, onEliminar, onActualizarLista }:
   const [mostrarReparacion, setMostrarReparacion] = useState(false);
   const [agregandoAlCarrito, setAgregandoAlCarrito] = useState(false);
   
-  
   const { agregarAlCarrito, estaEnCarrito } = useCarrito();
 
   const gridColsClass = "grid-cols-1 md:grid-cols-2";
 
   const estado = (equipo?.estado ?? "entregado").toString().toLowerCase();
-  
-  // ✅ DETECTAR SI ESTÁ EN REPARACIÓN
   const isInRepairProcess = estado.includes("proceso") || estado.includes("espera");
-  // ✅ DETECTAR SI ESTÁ ENTREGADO (puede ir al carrito)
   const isDelivered = estado.includes("entregado");
 
   const borderClass = isInRepairProcess ? "border-orange-400" : "border-indigo-300";
@@ -101,7 +90,6 @@ export default function TarjetaEquipo({ equipo, onEliminar, onActualizarLista }:
   const reparacionDisabled = !isInRepairProcess;
   const fechaUltimoIngreso = getFechaUltimoIngreso(equipo.historial_ingresos);
 
-  // ✅ NUEVA FUNCIÓN: Agregar al carrito en lugar de generar acta
   const handleAgregarAlCarrito = async () => {
     if (!equipo.id) return;
     
@@ -131,12 +119,13 @@ export default function TarjetaEquipo({ equipo, onEliminar, onActualizarLista }:
   };
 
   const enCarrito = estaEnCarrito(equipo.id!);
-  // ✅ BLOQUEAR BOTÓN SI ESTÁ EN REPARACIÓN O YA ESTÁ EN CARRITO
   const carritoDisabled = !isDelivered || enCarrito || agregandoAlCarrito;
 
   return (
     <>
-        <div className={`relative p-4 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 border-2 ${borderClass} flex flex-col h-full overflow-hidden bg-white`}>        
+      <div className={`relative p-4 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 border-2 ${borderClass} flex flex-col h-full overflow-hidden bg-white`}>
+        
+        {/* BADGE + BOTÓN INGRESO */}
         <div className="absolute top-1 right-3 z-20 flex items-center gap-2"> 
           <span className={`text-xs font-semibold px-2 py-1 rounded-full ${badgeClass} select-none whitespace-nowrap`}>
             {estadoTexto}
@@ -148,6 +137,7 @@ export default function TarjetaEquipo({ equipo, onEliminar, onActualizarLista }:
           />
         </div>
 
+        {/* HEADER */}
         <div className={`${headerBgClass} -mx-4 px-4 py-4 mb-3 rounded-t-lg`}> 
           <h2 className="font-extrabold text-xl text-gray-800 pr-[140px] truncate mt-2"> 
             {equipo.nombre_equipo || equipo.tipo_equipo?.toUpperCase()}
@@ -160,22 +150,35 @@ export default function TarjetaEquipo({ equipo, onEliminar, onActualizarLista }:
           </p>
         </div>
 
-        <div className={`grid ${gridColsClass} gap-y-1 gap-x-6 text-sm mb-4 flex-grow`}>
+        {/* 🔥 GRID ESTABLE SIN MOVIMIENTOS (se eliminó flex-grow y se aumentó gap-y) */}
+        <div className={`grid ${gridColsClass} gap-y-2 gap-x-6 text-sm mb-4`}>
           <AtributosComunes equipo={equipo} />
-          {(equipo.tipo_equipo === "pc" || equipo.tipo_equipo === "notebook") && <AtributosPC equipo={equipo} />}
-          {equipo.tipo_equipo === "impresora" && <AtributosImpresora equipo={equipo} />}
+          {(equipo.tipo_equipo === "pc" || equipo.tipo_equipo === "notebook") && (
+            <AtributosPC equipo={equipo} />
+          )}
+          {equipo.tipo_equipo === "impresora" && (
+            <AtributosImpresora equipo={equipo} />
+          )}
         </div>
 
+        {/* 🔥 COMENTARIOS CON SCROLL SI ES MUY LARGO */}
         {equipo.comentarios && (
-          <div className="mt-2 mb-4 p-3 border-l-4 border-blue-400 bg-blue-50 rounded-r-md text-gray-700 text-sm shadow-inner">
-            <p className="font-bold text-blue-700 mb-1 flex items-center gap-1">📝 Comentarios:</p>
+        <div className="mt-2 mb-4 p-3 border-l-4 border-blue-400 bg-blue-50 rounded-r-md text-gray-700 text-sm shadow-inner">
+
+          <p className="font-bold text-blue-700 mb-1 flex items-center gap-1">📝 Comentarios:</p>
+
+          {/* 🔒 Altura fija para que NO estire la tarjeta y NO mueva los botones */}
+          <div className="max-h-18 overflow-y-auto pr-1">
             <p className="whitespace-pre-wrap">{equipo.comentarios}</p>
           </div>
-        )}
 
-        {/* BOTONES EN UNA SOLA FILA - AJUSTADO */}
+        </div>
+      )}
+
+
+        {/* BOTONES */}
         <div className="mt-4 pt-3 border-t flex gap-2 justify-end items-center">
-          {/* ✅ BOTÓN MODIFICADO: Solo disponible si está ENTREGADO */}
+
           <button
             className={`text-white px-3 py-1 text-xs font-medium rounded-full transition-colors shadow-md min-w-[80px] ${
               carritoDisabled 
@@ -196,7 +199,6 @@ export default function TarjetaEquipo({ equipo, onEliminar, onActualizarLista }:
              "🛒 Carrito"}
           </button>
 
-          {/* Botón Reparación - más compacto */}
           <button
             className={`text-white px-3 py-1 text-xs font-medium rounded-full transition-colors shadow-md min-w-[80px] ${
               reparacionDisabled ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
@@ -211,7 +213,6 @@ export default function TarjetaEquipo({ equipo, onEliminar, onActualizarLista }:
             🛠️ Reparación
           </button>
 
-          {/* Botón Historial - más compacto */}
           <button
             className="bg-yellow-600 text-white px-3 py-1 text-xs font-medium rounded-full hover:bg-yellow-700 transition-colors shadow-md min-w-[70px]"
             onClick={() => setMostrarHistorial(true)}
@@ -219,16 +220,17 @@ export default function TarjetaEquipo({ equipo, onEliminar, onActualizarLista }:
             📜 Historial
           </button>
 
-          {/* Botón Eliminar - más compacto */}
           <button
             className="bg-red-600 text-white px-3 py-1 text-xs font-medium rounded-full hover:bg-red-700 transition-colors shadow-md min-w-[70px]"
             onClick={() => onEliminar(equipo)}
           >
             🗑️ Eliminar
           </button>
+
         </div>
       </div>
 
+      {/* MODALES */}
       {mostrarHistorial && (
         <ModalHistorial
           idEquipo={equipo.id!}
