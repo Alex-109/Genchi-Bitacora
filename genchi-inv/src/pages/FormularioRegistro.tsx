@@ -7,9 +7,10 @@ import { obtenerUnidades } from "../services/unidadesApi";
 const tiposEquipos: TipoEquipo[] = ["pc", "notebook", "impresora"];
 
 const marcasPorTipo: Record<TipoEquipo, string[]> = {
-  pc: ["HP", "Dell", "Lenovo", "Asus", "Acer", "Generico"],
-  notebook: ["Apple", "Samsung", "HP", "Lenovo", "Dell"],
-  impresora: ["Brother", "Epson", "Canon", "HP"],
+ 
+  pc: ["HP", "Dell", "Lenovo", "Asus", "Acer", "MSI", "Apple", "Toshiba","otro"],
+  notebook: ["Apple", "HP", "Lenovo", "Dell", "Asus", "Acer", "Samsung", "MSI", "Huawei", "Toshiba","otro"],
+  impresora: ["HP", "Epson", "Canon", "Brother", "Xerox", "Lexmark"],
   todos: [],
 };
 

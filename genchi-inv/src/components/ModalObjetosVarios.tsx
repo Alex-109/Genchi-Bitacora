@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { objetosVariosApi } from '../services/objetosVarios';
+import { obtenerUnidades } from '../services/unidadesApi';
 import type { ObjetoVario, CrearObjetoVarioRequest } from '../types/objetosVarios';
 
 interface Props {
@@ -23,6 +24,8 @@ const ModalObjetoVario: React.FC<Props> = ({
     comentarios: '',
   });
   const [loading, setLoading] = useState(false);
+  const [unidades, setUnidades] = useState<string[]>([]);
+  const [customUnidad, setCustomUnidad] = useState("");
 
   const isEditing = !!objeto;
 
@@ -35,6 +38,23 @@ const ModalObjetoVario: React.FC<Props> = ({
       });
     }
   }, [objeto]);
+
+  // Cargar unidades para el select
+  useEffect(() => {
+    let mounted = true;
+    const fetch = async () => {
+      try {
+        const list = await obtenerUnidades();
+        if (!mounted) return;
+        setUnidades(Array.isArray(list) ? list : []);
+      } catch (err) {
+        console.warn('No se pudieron cargar unidades:', err);
+        if (mounted) setUnidades([]);
+      }
+    };
+    fetch();
+    return () => { mounted = false; };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,6 +82,13 @@ const ModalObjetoVario: React.FC<Props> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    // Si cambiamos el select de unidad y seleccionamos 'Otros', dejamos customUnidad para editar
+    if (name === 'unidad' && value === 'Otros') {
+      setFormData(prev => ({ ...prev, unidad: 'Otros' }));
+      setCustomUnidad('');
+      return;
+    }
+
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -117,15 +144,36 @@ const ModalObjetoVario: React.FC<Props> = ({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Unidad *
               </label>
-              <input
-                type="text"
+              <select
                 name="unidad"
-                value={formData.unidad}
+                value={formData.unidad === '' ? '' : formData.unidad}
                 onChange={handleChange}
                 required
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Ej: Valparaíso, Viña del Mar..."
-              />
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              >
+                <option value="">Selecciona Unidad</option>
+                {unidades.map(u => (
+                  <option key={u} value={u}>{u}</option>
+                ))}
+                <option value="Otros">Otros</option>
+              </select>
+
+              {/* Si el usuario elige 'Otros', mostrar input libre */}
+              {formData.unidad === 'Otros' && (
+                <input
+                  type="text"
+                  name="unidad"
+                  value={customUnidad}
+                  onChange={(e) => {
+                    setCustomUnidad(e.target.value);
+                    // Mantener formData.unidad con el valor real
+                    setFormData(prev => ({ ...prev, unidad: e.target.value }));
+                  }}
+                  required
+                  placeholder="Especifica la unidad..."
+                  className="mt-2 w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              )}
             </div>
 
             {/* Comentarios */}

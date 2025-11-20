@@ -93,7 +93,26 @@ export default function ModalReparacion({
   const [unidades, setUnidades] = useState<string[]>([]);
 
   useEffect(() => {
-    setFormData(equipo ?? {});
+    if (!equipo) {
+      setFormData({});
+      return;
+    }
+
+    // Normalizar campos numéricos por si vienen como string
+    const normalized: Partial<Equipo> = {
+      ...equipo,
+      ram: (equipo as any).ram !== undefined && (equipo as any).ram !== null ? Number((equipo as any).ram) : undefined,
+      almacenamiento:
+        (equipo as any).almacenamiento !== undefined && (equipo as any).almacenamiento !== null
+          ? Number((equipo as any).almacenamiento)
+          : undefined,
+    };
+
+    // Debug para comprobar qué llega en el equipo
+    // eslint-disable-next-line no-console
+    console.debug("ModalReparacion: equipo recibido:", equipo.id, { ram: equipo.ram, almacenamiento: equipo.almacenamiento });
+
+    setFormData(normalized);
   }, [equipo]);
 
   // Obtener unidades al abrir el modal / montar componente
@@ -254,8 +273,8 @@ export default function ModalReparacion({
 
   // ===== RENDER =====
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="relative w-full max-w-3xl bg-gradient-to-br from-white to-slate-50 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+      <div className="relative z-[10000] w-full max-w-3xl bg-gradient-to-br from-white to-slate-50 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-indigo-600 to-blue-500 text-white sticky top-0 z-10">
           <div className="flex items-center gap-4">

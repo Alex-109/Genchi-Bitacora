@@ -432,15 +432,73 @@ export default function BusquedaEquipos() {
         </button>
 
         <div className="hidden md:flex items-center gap-2">
-          {Array.from({ length: totalPaginas }).map((_, i) => (
-            <button
-              key={i + 1}
-              onClick={() => handleGotoPage(i + 1)}
-              className={`px-3 py-1 rounded-md ${paginaActual === i + 1 ? "bg-indigo-500 text-white" : "bg-white border shadow-sm"}`}
-            >
-              {i + 1}
-            </button>
-          ))}
+          {/* Ventana de paginación: mostramos una ventana centrada en la página actual, con primer/último y ellipsis */}
+          {(() => {
+            const pageWindow = 5; // número máximo de botones interiores
+            const half = Math.floor(pageWindow / 2);
+            let start = Math.max(1, paginaActual - half);
+            let end = Math.min(totalPaginas, paginaActual + half);
+
+            // ajustar si estamos cerca del inicio o del final
+            if (end - start + 1 < pageWindow) {
+              if (start === 1) {
+                end = Math.min(totalPaginas, start + pageWindow - 1);
+              } else if (end === totalPaginas) {
+                start = Math.max(1, end - pageWindow + 1);
+              }
+            }
+
+            const nodes: React.ReactNode[] = [];
+
+            // primer botón
+            if (start > 1) {
+              nodes.push(
+                <button
+                  key={1}
+                  onClick={() => handleGotoPage(1)}
+                  className={`px-3 py-1 rounded-md ${paginaActual === 1 ? "bg-indigo-500 text-white" : "bg-white border shadow-sm"}`}
+                >
+                  1
+                </button>
+              );
+              if (start > 2) {
+                nodes.push(
+                  <span key="left-ellipsis" className="px-2 text-sm text-gray-500">…</span>
+                );
+              }
+            }
+
+            for (let p = start; p <= end; p++) {
+              nodes.push(
+                <button
+                  key={p}
+                  onClick={() => handleGotoPage(p)}
+                  className={`px-3 py-1 rounded-md ${paginaActual === p ? "bg-indigo-500 text-white" : "bg-white border shadow-sm"}`}
+                >
+                  {p}
+                </button>
+              );
+            }
+
+            if (end < totalPaginas) {
+              if (end < totalPaginas - 1) {
+                nodes.push(
+                  <span key="right-ellipsis" className="px-2 text-sm text-gray-500">…</span>
+                );
+              }
+              nodes.push(
+                <button
+                  key={totalPaginas}
+                  onClick={() => handleGotoPage(totalPaginas)}
+                  className={`px-3 py-1 rounded-md ${paginaActual === totalPaginas ? "bg-indigo-500 text-white" : "bg-white border shadow-sm"}`}
+                >
+                  {totalPaginas}
+                </button>
+              );
+            }
+
+            return nodes;
+          })()}
         </div>
 
         <button
