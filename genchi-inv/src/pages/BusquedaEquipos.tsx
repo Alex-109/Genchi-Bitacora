@@ -9,6 +9,41 @@ import type { Equipo, FiltrosPC, FiltrosImpresora } from "../types/equipo";
 const TIPOS = ["todos", "pc", "notebook", "impresora"] as const;
 type TipoEstado = typeof TIPOS[number];
 
+// Marcas separadas por tipo (coherente con el formulario de registro)
+const MARCAS_PC = [
+  "HP",
+  "Dell",
+  "Lenovo",
+  "Asus",
+  "Acer",
+  "MSI",
+  "Apple",
+  "Toshiba",
+  "Generico",
+];
+
+const MARCAS_NOTEBOOK = [
+  "Apple",
+  "HP",
+  "Lenovo",
+  "Dell",
+  "Asus",
+  "Acer",
+  "Samsung",
+  "MSI",
+  "Huawei",
+  "Toshiba",
+];
+
+const MARCAS_IMPRESORAS = [
+  "HP",
+  "Epson",
+  "Canon",
+  "Brother",
+  "Xerox",
+  "Lexmark",
+];
+
 export default function BusquedaEquipos() {
   const [equipos, setEquipos] = useState<Equipo[]>([]);
   const [totalPaginas, setTotalPaginas] = useState(1);
@@ -210,6 +245,13 @@ export default function BusquedaEquipos() {
     setLimit(value);
     setPaginaActual(1);
   };
+
+  const marcasParaFiltro = useMemo(() => {
+    if (tipoEquipo === "pc") return MARCAS_PC;
+    if (tipoEquipo === "notebook") return MARCAS_NOTEBOOK;
+    if (tipoEquipo === "impresora") return MARCAS_IMPRESORAS;
+    return Array.from(new Set([...MARCAS_PC, ...MARCAS_NOTEBOOK, ...MARCAS_IMPRESORAS]));
+  }, [tipoEquipo]);
   
   // Función de limpieza para filtros comunes, incluyendo las fechas
   const handleLimpiarFechas = () => {
@@ -264,9 +306,9 @@ export default function BusquedaEquipos() {
             >
               <option value="">Marca (Todos)</option>
               <option value="Otros">Otros</option>
-              <option value="Dell">Dell</option>
-              <option value="HP">HP</option>
-              <option value="Lenovo">Lenovo</option>
+              {marcasParaFiltro.map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
             </select>
 
             <select
