@@ -168,27 +168,16 @@ export default function BusquedaEquipos() {
   };
 
   // ✅ EFECTO ÚNICO - Reemplaza los dos useEffect anteriores
-  useEffect(() => {
+ // En tu componente, justo antes de cargarEquipos
+useEffect(() => {
   const timeoutId = setTimeout(() => {
+    console.log('🔍 FILTROS PAYLOAD QUE SE ENVIARÁN:', JSON.stringify(filtrosPayload, null, 2));
     setPaginaActual(1);
     cargarEquipos({ pagina: 1, resetPage: true });
   }, 400);
 
   return () => clearTimeout(timeoutId);
-}, [
-  tipoEquipo,
-  filtrosComunes.marca,
-  filtrosComunes.unidad,
-  filtrosComunes.fechaInicio, 
-  filtrosComunes.fechaFin,
-  filtrosPC.ram,
-  filtrosPC.cpu,
-  filtrosPC.almacenamiento,
-  filtrosPC.tipo_almacenamiento,
-  limit,
-  buscarPorRango,
-  query
-]);
+}, [tipoEquipo, filtrosComunes, filtrosPC, filtrosImpresora, limit, buscarPorRango, query]);
 
   // --- Manejo de eliminación ---
   const handleClickEliminar = (equipo: Equipo) => {
