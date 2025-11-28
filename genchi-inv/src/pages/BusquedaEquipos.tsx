@@ -169,13 +169,26 @@ export default function BusquedaEquipos() {
 
   // ✅ EFECTO ÚNICO - Reemplaza los dos useEffect anteriores
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      setPaginaActual(1);
-      cargarEquipos({ pagina: 1, resetPage: true });
-    }, query ? 400 : 0); // Sin delay si query está vacío (carga inicial)
+  const timeoutId = setTimeout(() => {
+    setPaginaActual(1);
+    cargarEquipos({ pagina: 1, resetPage: true });
+  }, 400);
 
-    return () => clearTimeout(timeoutId);
-  }, [tipoEquipo, filtrosComunes, filtrosPC, filtrosImpresora, limit, buscarPorRango, query]);
+  return () => clearTimeout(timeoutId);
+}, [
+  tipoEquipo,
+  filtrosComunes.marca,
+  filtrosComunes.unidad,
+  filtrosComunes.fechaInicio, 
+  filtrosComunes.fechaFin,
+  filtrosPC.ram,
+  filtrosPC.cpu,
+  filtrosPC.almacenamiento,
+  filtrosPC.tipo_almacenamiento,
+  limit,
+  buscarPorRango,
+  query
+]);
 
   // --- Manejo de eliminación ---
   const handleClickEliminar = (equipo: Equipo) => {
